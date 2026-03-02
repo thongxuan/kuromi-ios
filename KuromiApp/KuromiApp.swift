@@ -16,12 +16,23 @@ struct KuromiApp: App {
 class AppState: ObservableObject {
     @Published var isSetupComplete: Bool = false
     @Published var currentScreen: AppScreen = .setup
+    @Published var isSetupEditMode: Bool = false
 
     init() {
         isSetupComplete = AppSettings.load() != nil
         if isSetupComplete {
             currentScreen = .chat
         }
+    }
+
+    func openSetupEdit() {
+        isSetupEditMode = true
+        currentScreen = .setup
+    }
+
+    func closeSetupEdit() {
+        isSetupEditMode = false
+        currentScreen = .chat
     }
 }
 
@@ -38,9 +49,9 @@ struct RootView: View {
         Group {
             switch appState.currentScreen {
             case .setup:
-                SetupView()
+                SetupView(isEditMode: appState.isSetupEditMode)
             case .voiceSetup:
-                VoiceSetupView()
+                VoiceSetupView(isEditMode: appState.isSetupEditMode)
             case .chat:
                 ChatView()
             }

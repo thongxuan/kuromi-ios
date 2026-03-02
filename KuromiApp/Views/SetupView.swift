@@ -11,6 +11,7 @@ struct SetupView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+                .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
 
             VStack(spacing: 32) {
                 // Header
@@ -84,7 +85,7 @@ struct SetupView: View {
 
                     if viewModel.isEditMode {
                         Button("Cancel") {
-                            appState.currentScreen = .chat
+                            appState.closeSetupEdit()
                         }
                         .font(.headline)
                         .foregroundColor(.gray)
@@ -100,7 +101,7 @@ struct SetupView: View {
     private func continueAction() {
         guard viewModel.save() != nil else { return }
         if viewModel.isEditMode {
-            appState.currentScreen = .chat
+            appState.closeSetupEdit()
         } else {
             appState.currentScreen = .voiceSetup
         }

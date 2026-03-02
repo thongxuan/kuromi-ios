@@ -26,6 +26,8 @@ class ChatViewModel: ObservableObject {
     private var settings: AppSettings
     private var cancellables = Set<AnyCancellable>()
     private var pendingWakeInput: String?
+    private var connectTimer: Timer?
+    @Published var showReconnectButton: Bool = false
 
     init() {
         settings = AppSettings.load()!
@@ -45,6 +47,8 @@ class ChatViewModel: ObservableObject {
                 case .connected:
                     self.chatState = .idle
                     self.isToggleEnabled = true
+                    self.showReconnectButton = false
+                    self.connectTimer?.invalidate()
                     // Handle pending wake input
                     if let wakeInput = self.pendingWakeInput {
                         self.pendingWakeInput = nil
@@ -101,8 +105,27 @@ class ChatViewModel: ObservableObject {
     // MARK: - Lifecycle
 
     func onAppear() {
-        gatewayService.connect(to: settings.gatewayURL)
+        connectWithTimeout(to: settings.gatewayURL)
         setupWakeWordListening()
+    }
+
+    func reconnect() {
+        showReconnectButton = false
+        connectWithTimeout(to: settings.gatewayURL)
+    }
+
+    private func connectWithTimeout(to url: String) {
+        showReconnectButton = false
+        gatewayService.connect(to: url)
+        connectTimer?.invalidate()
+        connectTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                if case .connecting = self.chatState {
+                    self.showReconnectButton = true
+                }
+            }
+        }
     }
 
     func onDisappear() {

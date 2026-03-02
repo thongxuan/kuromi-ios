@@ -2,12 +2,14 @@ import SwiftUI
 
 struct VoiceSetupView: View {
     @EnvironmentObject var appState: AppState
+    var isEditMode: Bool = false
     @StateObject private var viewModel = VoiceSetupViewModel()
     @State private var showingSaveConfirm = false
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+                .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
 
             VStack(spacing: 0) {
                 // Navigation Bar
@@ -27,6 +29,7 @@ struct VoiceSetupView: View {
                     Spacer()
                     Button("Save") {
                         viewModel.save()
+                        appState.isSetupEditMode = false
                         appState.currentScreen = .chat
                     }
                     .foregroundColor(.purple)
@@ -76,17 +79,25 @@ struct VoiceSetupView: View {
                     .foregroundColor(.gray)
             }
 
-            // Wake phrase display
-            Text("\"\(viewModel.wakeWord)\"")
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(.purple)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.purple.opacity(0.1))
-                )
+            // Wake phrase text input
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Wake phrase")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                TextField("e.g. hey kuromi", text: $viewModel.wakeWord)
+                    .font(.system(.body, design: .rounded))
+                    .foregroundColor(.white)
+                    .autocapitalization(.none)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 14)
+                    .frame(height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.purple.opacity(0.1))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1))
+                    )
+            }
 
             // Training progress
             HStack(spacing: 12) {
@@ -137,7 +148,10 @@ struct VoiceSetupView: View {
                         viewModel.resetTraining()
                     }
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.purple.opacity(0.15)))
                 }
                 .padding(.vertical, 8)
             }

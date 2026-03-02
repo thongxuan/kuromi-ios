@@ -37,6 +37,24 @@ struct ChatView: View {
 
                 Spacer()
 
+                // Reconnect button (shows after 5s timeout)
+                if viewModel.showReconnectButton {
+                    Button(action: { viewModel.reconnect() }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Reconnect")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .frame(height: 44)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
+                    }
+                    .padding(.bottom, 8)
+                    .transition(.opacity)
+                }
+
                 // Toggle button
                 toggleButton
                     .padding(.horizontal, 40)
@@ -63,7 +81,7 @@ struct ChatView: View {
 
             Spacer()
 
-            Button(action: { appState.currentScreen = .setup }) {
+            Button(action: { appState.openSetupEdit() }) {
                 Image(systemName: "gearshape")
                     .font(.body)
                     .foregroundColor(.gray)
