@@ -11,9 +11,9 @@ class ElevenLabsService: NSObject, ObservableObject {
     private var streamTask: URLSessionDataTask?
     private var streamDelegate: TTSStreamDelegate?
 
-    // Streaming PCM state
-    private let audioEngine = AVAudioEngine()
-    private let playerNode = AVAudioPlayerNode()
+    // Streaming PCM state — dùng AudioService.shared engine
+    private var playerNode = AVAudioPlayerNode()
+    private var engineSetup = false
     private var pcmBuffer: Data = Data()
     private let pcmSampleRate: Double = 24000
     private let chunkThreshold = 48000 * 1 / 3 // ~0.33s worth of 16-bit 24kHz PCM
@@ -32,9 +32,12 @@ class ElevenLabsService: NSObject, ObservableObject {
     }
 
     private func setupStreamingEngine() {
+        guard !engineSetup else { return }
+        engineSetup = true
+        let engine = AudioService.shared.engine
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: pcmSampleRate, channels: 1, interleaved: false)!
-        audioEngine.attach(playerNode)
-        audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: format)
+        engine.attach(playerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: format)
     }
 
     // MARK: - Premade voices
@@ -106,12 +109,11 @@ class ElevenLabsService: NSObject, ObservableObject {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        // Start audio engine
+        // Start shared audio engine
+        setupStreamingEngine()
+        let engine = AudioService.shared.engine
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
-            try session.setActive(true)
-            if !audioEngine.isRunning { try audioEngine.start() }
+            if !engine.isRunning { try engine.start() }
             playerNode.play()
         } catch {
             print("Audio engine start error: \(error)")
@@ -176,7 +178,8 @@ class ElevenLabsService: NSObject, ObservableObject {
 
     private func scheduleChunk(_ data: Data) {
         guard let buffer = makePCMBuffer(from: data) else { return }
-        if !audioEngine.isRunning { try? audioEngine.start() }
+        let engine = AudioService.shared.engine
+        if !engine.isRunning { try? engine.start() }
         if !playerNode.isPlaying { playerNode.play() }
         playerNode.scheduleBuffer(buffer, completionHandler: nil)
     }

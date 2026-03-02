@@ -4,8 +4,9 @@ import Combine
 class AudioService: NSObject, ObservableObject {
     static let shared = AudioService()
 
-    private let audioEngine = AVAudioEngine()
-    private var inputNode: AVAudioInputNode { audioEngine.inputNode }
+    let engine = AVAudioEngine()
+    private var audioEngine: AVAudioEngine { engine }
+    private var inputNode: AVAudioInputNode { engine.inputNode }
     private var playerNode = AVAudioPlayerNode()
 
     @Published var inputLevel: Float = 0.0
@@ -66,14 +67,29 @@ class AudioService: NSObject, ObservableObject {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
-        print("Audio route: switched to Bluetooth")
+        // Set Bluetooth HFP as preferred input (mic)
+        if let btInput = session.availableInputs?.first(where: {
+            $0.portType == .bluetoothHFP || $0.portType == .bluetoothLE
+        }) {
+            try? session.setPreferredInput(btInput)
+            print("Audio input: \(btInput.portName)")
+        }
+        restartEngineIfNeeded()
     }
 
     private func switchToSpeaker() {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
+        try? session.setPreferredInput(nil)
+        restartEngineIfNeeded()
         print("Audio route: switched to Speaker")
+    }
+
+    private func restartEngineIfNeeded() {
+        guard audioEngine.isRunning else { return }
+        audioEngine.stop()
+        try? audioEngine.start()
     }
 
     private func updateBluetoothState() {
