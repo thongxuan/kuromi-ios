@@ -2,6 +2,7 @@ import Foundation
 
 struct AppSettings: Codable {
     var gatewayURL: String
+    var gatewayToken: String
     var deepgramAPIKey: String
     var elevenLabsAPIKey: String
     var selectedVoiceID: String

@@ -10,11 +10,13 @@ enum GatewayState {
 
 class GatewayService: NSObject, ObservableObject {
     @Published var state: GatewayState = .disconnected
-    @Published var lastResponse: String?
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession!
     private var gatewayURL: String = ""
+    private var gatewayToken: String = ""
+    private var pendingRequests: [String: CheckedContinuation<[String: Any], Error>] = [:]
+    private var sessionKey: String = "kuromi-ios-voice"
 
     var onResponse: ((String) -> Void)?
 
@@ -23,8 +25,9 @@ class GatewayService: NSObject, ObservableObject {
         urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
     }
 
-    func connect(to urlString: String) {
+    func connect(to urlString: String, token: String = "") {
         gatewayURL = urlString
+        gatewayToken = token
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async { self.state = .error("Invalid Gateway URL") }
             return
@@ -44,14 +47,48 @@ class GatewayService: NSObject, ObservableObject {
 
     func sendMessage(_ text: String) {
         guard case .connected = state else { return }
-        let payload: [String: String] = ["type": "chat.send", "text": text]
-        guard let data = try? JSONEncoder().encode(payload),
-              let jsonString = String(data: data, encoding: .utf8) else { return }
-        webSocketTask?.send(.string(jsonString)) { error in
-            if let error = error {
-                print("Gateway send error: \(error)")
-            }
+        let idempotencyKey = UUID().uuidString
+        let params: [String: Any] = [
+            "sessionKey": sessionKey,
+            "message": text,
+            "idempotencyKey": idempotencyKey
+        ]
+        sendReq(method: "chat.send", params: params)
+    }
+
+    // MARK: - Protocol
+
+    private func sendReq(method: String, params: [String: Any]) {
+        let frame: [String: Any] = [
+            "type": "req",
+            "id": UUID().uuidString,
+            "method": method,
+            "params": params
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: frame),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webSocketTask?.send(.string(json)) { error in
+            if let error = error { print("Gateway send error: \(error)") }
         }
+    }
+
+    private func handleChallenge() {
+        let params: [String: Any] = [
+            "minProtocol": 3,
+            "maxProtocol": 3,
+            "client": [
+                "id": "openclaw-ios",
+                "displayName": "Kuromi iOS",
+                "version": "1.0",
+                "platform": "ios",
+                "mode": "ui"
+            ],
+            "auth": ["token": gatewayToken],
+            "role": "operator",
+            "scopes": ["operator.admin"],
+            "caps": [] as [String]
+        ]
+        sendReq(method: "connect", params: params)
     }
 
     private func receiveMessages() {
@@ -60,45 +97,60 @@ class GatewayService: NSObject, ObservableObject {
             switch result {
             case .success(let message):
                 switch message {
-                case .string(let text):
-                    self.handleMessage(text)
+                case .string(let text): self.handleRawMessage(text)
                 case .data(let data):
-                    if let text = String(data: data, encoding: .utf8) {
-                        self.handleMessage(text)
-                    }
-                @unknown default:
-                    break
+                    if let text = String(data: data, encoding: .utf8) { self.handleRawMessage(text) }
+                @unknown default: break
                 }
                 self.receiveMessages()
             case .failure(let error):
                 print("Gateway receive error: \(error)")
-                DispatchQueue.main.async {
-                    self.state = .error(error.localizedDescription)
-                }
+                DispatchQueue.main.async { self.state = .error(error.localizedDescription) }
             }
         }
     }
 
-    private func handleMessage(_ text: String) {
+    private func handleRawMessage(_ text: String) {
         guard let data = text.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let type = json["type"] as? String else { return }
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
 
-        if type == "chat.response", let responseText = json["text"] as? String {
-            DispatchQueue.main.async {
-                self.lastResponse = responseText
-                self.onResponse?(responseText)
+        let type = json["type"] as? String ?? ""
+        let event = json["event"] as? String ?? ""
+
+        switch type {
+        case "event":
+            if event == "connect.challenge" {
+                handleChallenge()
+            } else if event == "chat.response" || event == "chat.token" {
+                // Handle streaming response
+                if let payload = json["payload"] as? [String: Any],
+                   let text = payload["text"] as? String ?? payload["token"] as? String {
+                    DispatchQueue.main.async { self.onResponse?(text) }
+                }
             }
+        case "res":
+            let reqId = json["id"] as? String ?? ""
+            let ok = json["ok"] as? Bool ?? false
+            if reqId.isEmpty { return }
+            // Check if connect response
+            if ok {
+                // After successful connect, mark as connected
+                DispatchQueue.main.async { self.state = .connected }
+            }
+        default:
+            break
         }
     }
 }
 
 extension GatewayService: URLSessionWebSocketDelegate {
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        DispatchQueue.main.async { self.state = .connected }
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                    didOpenWithProtocol protocol: String?) {
+        // Wait for challenge before marking connected
     }
 
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
+                    didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         DispatchQueue.main.async { self.state = .disconnected }
     }
 }

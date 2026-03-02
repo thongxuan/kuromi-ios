@@ -31,9 +31,17 @@ struct SetupView: View {
                 VStack(spacing: 16) {
                     KuromiTextField(
                         title: "Gateway URL",
-                        placeholder: "ws://192.168.1.1:8080",
+                        placeholder: "ws://192.168.1.1:18789",
                         text: $viewModel.gatewayURL,
                         icon: "antenna.radiowaves.left.and.right"
+                    )
+
+                    KuromiTextField(
+                        title: "Gateway Token",
+                        placeholder: "leave empty if no auth",
+                        text: $viewModel.gatewayToken,
+                        icon: "key.fill",
+                        isSecure: true
                     )
 
                     KuromiTextField(

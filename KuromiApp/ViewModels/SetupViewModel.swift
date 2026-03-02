@@ -3,6 +3,7 @@ import Combine
 
 class SetupViewModel: ObservableObject {
     @Published var gatewayURL: String = ""
+    @Published var gatewayToken: String = ""
     @Published var deepgramAPIKey: String = ""
     @Published var elevenLabsAPIKey: String = ""
     @Published var errorMessage: String = ""
@@ -14,6 +15,7 @@ class SetupViewModel: ObservableObject {
         self.isEditMode = isEditMode
         if let settings = AppSettings.load() {
             gatewayURL = settings.gatewayURL
+            gatewayToken = settings.gatewayToken
             deepgramAPIKey = settings.deepgramAPIKey
             elevenLabsAPIKey = settings.elevenLabsAPIKey
         }
@@ -33,6 +35,7 @@ class SetupViewModel: ObservableObject {
         errorMessage = ""
         var settings = AppSettings.load() ?? AppSettings(
             gatewayURL: "",
+            gatewayToken: "",
             deepgramAPIKey: "",
             elevenLabsAPIKey: "",
             selectedVoiceID: "",
@@ -41,6 +44,7 @@ class SetupViewModel: ObservableObject {
             wakeWordSamples: []
         )
         settings.gatewayURL = gatewayURL.trimmingCharacters(in: .whitespaces)
+        settings.gatewayToken = gatewayToken.trimmingCharacters(in: .whitespaces)
         settings.deepgramAPIKey = deepgramAPIKey.trimmingCharacters(in: .whitespaces)
         settings.elevenLabsAPIKey = elevenLabsAPIKey.trimmingCharacters(in: .whitespaces)
         settings.save()
