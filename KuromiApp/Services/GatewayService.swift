@@ -18,7 +18,9 @@ class GatewayService: NSObject, ObservableObject {
     private var pendingRequests: [String: CheckedContinuation<[String: Any], Error>] = [:]
     private var sessionKey: String = "kuromi-ios-voice"
 
-    var onResponse: ((String) -> Void)?
+    var onResponse: ((String) -> Void)?      // full final text
+    var onDelta: ((String) -> Void)?         // streaming delta
+    var onResponseComplete: (() -> Void)?    // response finished
 
     override init() {
         super.init()
@@ -121,20 +123,27 @@ class GatewayService: NSObject, ObservableObject {
         case "event":
             if event == "connect.challenge" {
                 handleChallenge()
-            } else if event == "chat.response" || event == "chat.token" {
-                // Handle streaming response
-                if let payload = json["payload"] as? [String: Any],
-                   let text = payload["text"] as? String ?? payload["token"] as? String {
-                    DispatchQueue.main.async { self.onResponse?(text) }
+            } else if event == "agent" {
+                guard let payload = json["payload"] as? [String: Any],
+                      let stream = payload["stream"] as? String else { return }
+
+                if stream == "assistant",
+                   let data = payload["data"] as? [String: Any] {
+                    if let delta = data["delta"] as? String, !delta.isEmpty {
+                        DispatchQueue.main.async { self.onDelta?(delta) }
+                    }
+                    if let fullText = data["text"] as? String {
+                        DispatchQueue.main.async { self.onResponse?(fullText) }
+                    }
+                } else if stream == "lifecycle",
+                          let data = payload["data"] as? [String: Any],
+                          let phase = data["phase"] as? String, phase == "end" {
+                    DispatchQueue.main.async { self.onResponseComplete?() }
                 }
             }
         case "res":
-            let reqId = json["id"] as? String ?? ""
             let ok = json["ok"] as? Bool ?? false
-            if reqId.isEmpty { return }
-            // Check if connect response
             if ok {
-                // After successful connect, mark as connected
                 DispatchQueue.main.async { self.state = .connected }
             }
         default:

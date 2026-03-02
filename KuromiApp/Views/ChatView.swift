@@ -30,6 +30,7 @@ struct ChatView: View {
                 TranscriptListView(
                     messages: viewModel.messages,
                     currentTranscript: viewModel.currentTranscript,
+                    currentAIResponse: viewModel.currentAIResponse,
                     chatState: viewModel.chatState
                 )
                 .frame(maxHeight: 240)
@@ -324,6 +325,7 @@ struct OrbView: View {
 struct TranscriptListView: View {
     let messages: [Message]
     let currentTranscript: String
+    let currentAIResponse: String
     let chatState: ChatState
 
     var body: some View {
@@ -333,6 +335,22 @@ struct TranscriptListView: View {
                     ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
                         TranscriptBubble(message: message, opacity: bubbleOpacity(index: index))
                             .id(message.id)
+                    }
+
+                    // AI streaming response
+                    if !currentAIResponse.isEmpty {
+                        HStack(alignment: .bottom, spacing: 0) {
+                            Text(currentAIResponse)
+                                .foregroundColor(.purple.opacity(0.9))
+                            Text("▌")
+                                .foregroundColor(.purple)
+                                .animation(.easeInOut(duration: 0.5).repeatForever(), value: currentAIResponse)
+                        }
+                        .font(.subheadline)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.purple.opacity(0.08)))
+                        .id("ai-live")
                     }
 
                     // Live transcript cursor

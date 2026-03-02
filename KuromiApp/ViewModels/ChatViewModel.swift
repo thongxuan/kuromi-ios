@@ -16,6 +16,7 @@ class ChatViewModel: ObservableObject {
     @Published var currentTranscript: String = ""
     @Published var inputLevel: Float = 0.0
     @Published var isToggleEnabled: Bool = false
+    @Published var currentAIResponse: String = ""
 
     private let audioService = AudioService.shared
     private var gatewayService = GatewayService()
@@ -70,7 +71,15 @@ class ChatViewModel: ObservableObject {
             .store(in: &cancellables)
 
         gatewayService.onResponse = { [weak self] text in
-            self?.handleGatewayResponse(text)
+            DispatchQueue.main.async { self?.currentAIResponse = text }
+        }
+        gatewayService.onDelta = { [weak self] delta in
+            DispatchQueue.main.async {
+                self?.currentAIResponse += delta
+            }
+        }
+        gatewayService.onResponseComplete = { [weak self] in
+            self?.handleGatewayResponseComplete()
         }
 
         // Deepgram transcript
@@ -197,11 +206,13 @@ class ChatViewModel: ObservableObject {
         gatewayService.sendMessage(text)
     }
 
-    private func handleGatewayResponse(_ text: String) {
+    private func handleGatewayResponseComplete() {
+        let text = currentAIResponse
+        guard !text.isEmpty else { return }
+        currentAIResponse = ""
         let msg = Message(role: .assistant, text: text)
         messages.append(msg)
         chatState = .aiSpeaking
-
         let voiceID = settings.selectedVoiceID.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : settings.selectedVoiceID
         elevenLabsService?.speak(text: text, voiceID: voiceID)
     }
