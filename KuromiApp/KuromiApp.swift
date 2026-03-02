@@ -25,7 +25,7 @@ class AppState: ObservableObject {
     }
 }
 
-enum AppScreen {
+enum AppScreen: Equatable {
     case setup
     case voiceSetup
     case chat

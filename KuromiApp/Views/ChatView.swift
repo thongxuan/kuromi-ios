@@ -94,31 +94,32 @@ struct ChatView: View {
 
     // MARK: - Status label
 
+    @ViewBuilder
     private var statusLabel: some View {
-        Group {
+        let label: String = {
             switch viewModel.chatState {
-            case .connecting:
-                Text("Connecting to gateway…")
-                    .foregroundColor(.gray)
-            case .idle:
-                Text("Tap to speak or say \"\(AppSettings.load()?.wakeWord ?? "hey kuromi")\"")
-                    .foregroundColor(.gray)
-            case .userSpeaking:
-                Text(viewModel.currentTranscript.isEmpty ? "Listening…" : viewModel.currentTranscript)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-            case .aiSpeaking:
-                Text("Tap to interrupt")
-                    .foregroundColor(.purple.opacity(0.7))
-            case .error(let msg):
-                Text(msg)
-                    .foregroundColor(.red)
+            case .connecting: return "Connecting to gateway…"
+            case .idle: return "Tap to speak or say \"\(AppSettings.load()?.wakeWord ?? "hey kuromi")\""
+            case .userSpeaking: return viewModel.currentTranscript.isEmpty ? "Listening…" : viewModel.currentTranscript
+            case .aiSpeaking: return "Tap to interrupt"
+            case .error(let msg): return msg
             }
-        }
-        .font(.footnote)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 32)
-        .animation(.easeInOut(duration: 0.2), value: connectionLabel)
+        }()
+        let color: Color = {
+            switch viewModel.chatState {
+            case .userSpeaking: return .white
+            case .aiSpeaking: return .purple.opacity(0.7)
+            case .error: return .red
+            default: return .gray
+            }
+        }()
+        Text(label)
+            .font(.footnote)
+            .foregroundColor(color)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .padding(.horizontal, 32)
+            .animation(.easeInOut(duration: 0.2), value: label)
     }
 
     // MARK: - Toggle Button
@@ -272,7 +273,7 @@ struct OrbView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.6), value: dynamicScale)
         .animation(.easeInOut(duration: 0.5), value: orbColor)
         .onAppear { startAIPulse() }
-        .onChange(of: chatState.description) { _, _ in startAIPulse() }
+        .onChange(of: chatState) { _, _ in startAIPulse() }
     }
 
     private var orbIcon: String {
@@ -298,17 +299,7 @@ struct OrbView: View {
     }
 }
 
-extension ChatState {
-    var description: String {
-        switch self {
-        case .connecting: return "connecting"
-        case .idle: return "idle"
-        case .userSpeaking: return "userSpeaking"
-        case .aiSpeaking: return "aiSpeaking"
-        case .error(let e): return "error:\(e)"
-        }
-    }
-}
+
 
 // MARK: - TranscriptListView
 
@@ -391,7 +382,7 @@ struct TranscriptBubble: View {
                               ? Color.white.opacity(0.08)
                               : Color.purple.opacity(0.12))
                 )
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.72, alignment: message.role == .user ? .leading : .trailing)
+                .frame(maxWidth: 280, alignment: message.role == .user ? .leading : .trailing)
 
             if message.role == .user { Spacer() }
         }

@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-enum ChatState {
+enum ChatState: Equatable {
     case connecting
     case idle
     case userSpeaking
