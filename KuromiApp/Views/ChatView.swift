@@ -339,18 +339,13 @@ struct TranscriptListView: View {
 
                     // AI streaming response
                     if !currentAIResponse.isEmpty {
-                        HStack(alignment: .bottom, spacing: 0) {
-                            Text(currentAIResponse)
-                                .foregroundColor(.purple.opacity(0.9))
-                            Text("▌")
-                                .foregroundColor(.purple)
-                                .animation(.easeInOut(duration: 0.5).repeatForever(), value: currentAIResponse)
-                        }
-                        .font(.subheadline)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.purple.opacity(0.08)))
-                        .id("ai-live")
+                        Text(currentAIResponse)
+                            .foregroundColor(.purple.opacity(0.9))
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.purple.opacity(0.08)))
+                            .id("ai-live")
                     }
 
                     // Live transcript cursor

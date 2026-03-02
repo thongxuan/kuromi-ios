@@ -53,7 +53,8 @@ class GatewayService: NSObject, ObservableObject {
         let params: [String: Any] = [
             "sessionKey": sessionKey,
             "message": text,
-            "idempotencyKey": idempotencyKey
+            "idempotencyKey": idempotencyKey,
+            "deliver": false
         ]
         sendReq(method: "chat.send", params: params)
     }
