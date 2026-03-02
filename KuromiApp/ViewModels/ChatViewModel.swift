@@ -28,6 +28,7 @@ class ChatViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var pendingWakeInput: String?
     private var connectTimer: Timer?
+    private var silenceTimer: Timer?
     @Published var showReconnectButton: Bool = false
 
     init() {
@@ -85,7 +86,10 @@ class ChatViewModel: ObservableObject {
         // Deepgram transcript
         deepgramService?.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
-                self?.currentTranscript = text
+                guard let self = self else { return }
+                self.currentTranscript = text
+                // Reset silence timer mỗi khi có text mới
+                self.resetSilenceTimer()
             }
         }
 
@@ -93,9 +97,9 @@ class ChatViewModel: ObservableObject {
         deepgramService?.onUtteranceEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self, case .userSpeaking = self.chatState else { return }
-                let text = self.currentTranscript
-                if !text.isEmpty {
-                    self.finalizeSpeech(text)
+                self.silenceTimer?.invalidate()
+                if !self.currentTranscript.isEmpty {
+                    self.finalizeSpeech(self.currentTranscript)
                 }
             }
         }
@@ -177,6 +181,17 @@ class ChatViewModel: ObservableObject {
 
     // MARK: - User Speaking
 
+    private func resetSilenceTimer() {
+        guard case .userSpeaking = chatState else { return }
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            guard let self = self, case .userSpeaking = self.chatState else { return }
+            if !self.currentTranscript.isEmpty {
+                self.finalizeSpeech(self.currentTranscript)
+            }
+        }
+    }
+
     private func startUserSpeaking() {
         chatState = .userSpeaking
         currentTranscript = ""
@@ -188,6 +203,8 @@ class ChatViewModel: ObservableObject {
     }
 
     private func stopUserSpeaking() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
         audioService.stopRecording()
         deepgramService?.disconnect()
 
