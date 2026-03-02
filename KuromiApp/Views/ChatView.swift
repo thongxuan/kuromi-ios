@@ -101,7 +101,7 @@ struct ChatView: View {
                 Text("Connecting to gateway…")
                     .foregroundColor(.gray)
             case .idle:
-                Text("Tap to speak or say "\(AppSettings.load()?.wakeWord ?? "hey kuromi")"")
+                Text("Tap to speak or say \"\(AppSettings.load()?.wakeWord ?? "hey kuromi")\"")
                     .foregroundColor(.gray)
             case .userSpeaking:
                 Text(viewModel.currentTranscript.isEmpty ? "Listening…" : viewModel.currentTranscript)
@@ -142,7 +142,7 @@ struct ChatView: View {
         .disabled(!viewModel.isToggleEnabled)
         .opacity(viewModel.isToggleEnabled ? 1.0 : 0.4)
         .scaleEffect(viewModel.isToggleEnabled ? 1.0 : 0.97)
-        .animation(.spring(response: 0.3), value: viewModel.isToggleEnabled)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.isToggleEnabled)
     }
 
     private var toggleIcon: String {
@@ -272,7 +272,7 @@ struct OrbView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.6), value: dynamicScale)
         .animation(.easeInOut(duration: 0.5), value: orbColor)
         .onAppear { startAIPulse() }
-        .onChange(of: chatState.description) { _ in startAIPulse() }
+        .onChange(of: chatState.description) { _, _ in startAIPulse() }
     }
 
     private var orbIcon: String {
@@ -348,12 +348,12 @@ struct TranscriptListView: View {
                 }
                 .padding(.vertical, 8)
             }
-            .onChange(of: messages.count) { _ in
+            .onChange(of: messages.count) { _, _ in
                 if let last = messages.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
-            .onChange(of: currentTranscript) { _ in
+            .onChange(of: currentTranscript) { _, _ in
                 withAnimation { proxy.scrollTo("live", anchor: .bottom) }
             }
         }

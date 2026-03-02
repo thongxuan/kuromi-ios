@@ -77,7 +77,7 @@ struct VoiceSetupView: View {
             }
 
             // Wake phrase display
-            Text(""\(viewModel.wakeWord)"")
+            Text("\"\(viewModel.wakeWord)\"")
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.purple)
