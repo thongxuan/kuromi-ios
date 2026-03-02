@@ -10,7 +10,8 @@
 		AA000001 /* KuromiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* KuromiApp.swift */; };
 		AA000002 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */; };
 		AA000003 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* Message.swift */; };
-		AA000004 /* VoiceOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100004 /* VoiceOption.swift */; };
+		AA000004 /* VoiceOption.swift in Sources */ };
+		AA000014 /* STTLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* STTLanguage.swift */; = {isa = PBXBuildFile; fileRef = AA100004 /* VoiceOption.swift */; };
 		AA000005 /* SetupViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100005 /* SetupViewModel.swift */; };
 		AA000006 /* VoiceSetupViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100006 /* VoiceSetupViewModel.swift */; };
 		AA000007 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100007 /* ChatViewModel.swift */; };
@@ -30,6 +31,7 @@
 		AA100001 /* KuromiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuromiApp.swift; sourceTree = "<group>"; };
 		AA100002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AA100003 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		AA100014 /* STTLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTLanguage.swift; sourceTree = "<group>"; };
 		AA100004 /* VoiceOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOption.swift; sourceTree = "<group>"; };
 		AA100005 /* SetupViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupViewModel.swift; sourceTree = "<group>"; };
 		AA100006 /* VoiceSetupViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupViewModel.swift; sourceTree = "<group>"; };
@@ -78,7 +80,8 @@
 			children = (
 				AA100002 /* AppSettings.swift */,
 				AA100003 /* Message.swift */,
-				AA100004 /* VoiceOption.swift */,
+				AA100014 /* STTLanguage.swift */,
+					AA100004 /* VoiceOption.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -211,7 +214,8 @@
 				AA000001 /* KuromiApp.swift in Sources */,
 				AA000002 /* AppSettings.swift in Sources */,
 				AA000003 /* Message.swift in Sources */,
-				AA000004 /* VoiceOption.swift in Sources */,
+				AA000004 /* VoiceOption.swift in Sources */ };
+		AA000014 /* STTLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* STTLanguage.swift */;,
 				AA000005 /* SetupViewModel.swift in Sources */,
 				AA000006 /* VoiceSetupViewModel.swift in Sources */,
 				AA000007 /* ChatViewModel.swift in Sources */,

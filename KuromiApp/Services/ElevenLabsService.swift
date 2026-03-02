@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-class ElevenLabsService: ObservableObject {
+class ElevenLabsService: NSObject, ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var voices: [VoiceOption] = []
 
@@ -15,6 +15,7 @@ class ElevenLabsService: ObservableObject {
 
     init(apiKey: String) {
         self.apiKey = apiKey
+        super.init()
     }
 
     // MARK: - Premade voices
