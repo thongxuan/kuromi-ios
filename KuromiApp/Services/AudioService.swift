@@ -16,20 +16,70 @@ class AudioService: NSObject, ObservableObject {
     private var playbackQueue: [Data] = []
     private var isPlaybackScheduled = false
 
+    @Published var isUsingBluetooth: Bool = false
+
     override init() {
         super.init()
         setupAudioSession()
         setupEngine()
+        observeRouteChanges()
     }
 
     private func setupAudioSession() {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
         } catch {
             print("AudioSession setup error: \(error)")
         }
+        updateBluetoothState()
+    }
+
+    private func observeRouteChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleRouteChange(_:)),
+            name: AVAudioSession.routeChangeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleRouteChange(_ notification: Notification) {
+        guard let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let changeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
+
+        switch changeReason {
+        case .newDeviceAvailable:
+            // AirPods/Bluetooth connected — switch to it
+            switchToBluetooth()
+        case .oldDeviceUnavailable:
+            // AirPods disconnected — fallback to speaker
+            switchToSpeaker()
+        default:
+            break
+        }
+        updateBluetoothState()
+    }
+
+    private func switchToBluetooth() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+        try? session.setActive(true)
+        print("Audio route: switched to Bluetooth")
+    }
+
+    private func switchToSpeaker() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+        try? session.setActive(true)
+        print("Audio route: switched to Speaker")
+    }
+
+    private func updateBluetoothState() {
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        let usingBT = outputs.contains { $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothLE }
+        DispatchQueue.main.async { self.isUsingBluetooth = usingBT }
     }
 
     private func setupEngine() {
