@@ -177,48 +177,151 @@ struct VoiceSetupView: View {
     // MARK: - Voice Selection Section
 
     private var voiceSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Voice")
                     .font(.headline)
                     .foregroundColor(.white)
-                Text("Choose ElevenLabs voice for AI responses")
+                Text("Tuỳ chỉnh giọng AI theo sở thích")
                     .font(.caption)
                     .foregroundColor(.gray)
             }
 
             if viewModel.isLoadingVoices {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                        .tint(.purple)
-                    Spacer()
-                }
-                .padding(.vertical, 20)
+                HStack { Spacer(); ProgressView().tint(.purple); Spacer() }
+                    .padding(.vertical, 20)
             } else if !viewModel.voiceLoadError.isEmpty {
                 VStack(spacing: 8) {
-                    Text(viewModel.voiceLoadError)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                    Button("Retry") { viewModel.loadVoices() }
-                        .foregroundColor(.purple)
-                }
-                .frame(maxWidth: .infinity)
+                    Text(viewModel.voiceLoadError).font(.caption).foregroundColor(.red).multilineTextAlignment(.center)
+                    Button("Retry") { viewModel.loadVoices() }.foregroundColor(.purple)
+                }.frame(maxWidth: .infinity)
             } else {
-                LazyVStack(spacing: 8) {
-                    ForEach(viewModel.voices) { voice in
-                        VoiceRowView(
-                            voice: voice,
-                            isSelected: viewModel.selectedVoiceID == voice.voice_id,
-                            onSelect: { viewModel.selectVoice(voice) },
-                            onPreview: { viewModel.previewVoice(voice) }
-                        )
+                // Filter controls
+                VStack(spacing: 14) {
+                    // Gender
+                    VoiceFilterRow(label: "Giới tính") {
+                        ForEach(VoiceGender.allCases, id: \.rawValue) { g in
+                            RadioChip(title: g.label, isSelected: viewModel.filterGender == g) {
+                                viewModel.filterGender = g
+                            }
+                        }
+                    }
+
+                    // Age
+                    VoiceFilterRow(label: "Độ tuổi") {
+                        ForEach(VoiceAge.allCases, id: \.rawValue) { a in
+                            RadioChip(title: a.label, isSelected: viewModel.filterAge == a) {
+                                viewModel.filterAge = a
+                            }
+                        }
+                    }
+
+                    // Tone
+                    VoiceFilterRow(label: "Tone giọng") {
+                        ForEach(VoiceTone.allCases, id: \.rawValue) { t in
+                            RadioChip(title: t.label, isSelected: viewModel.filterTone == t) {
+                                viewModel.filterTone = t
+                            }
+                        }
+                    }
+
+                    // Description text
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Mô tả thêm")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        TextField("vd: warm, british, storyteller...", text: $viewModel.filterDescription)
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundColor(.white)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 14)
+                            .frame(height: 42)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.white.opacity(0.06))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                            )
+                    }
+                }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
+
+                // Top matched voices
+                if !viewModel.matchedVoices.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Giọng phù hợp nhất")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+
+                        ForEach(viewModel.matchedVoices) { voice in
+                            VoiceRowView(
+                                voice: voice,
+                                isSelected: viewModel.selectedVoiceID == voice.voice_id,
+                                onSelect: { viewModel.selectVoice(voice) },
+                                onPreview: { viewModel.previewVoice(voice) }
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+// MARK: - Filter Components
+
+struct VoiceFilterRow<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.gray)
+            HStack(spacing: 8) {
+                content()
+            }
+        }
+    }
+}
+
+struct RadioChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(isSelected ? Color.purple : Color.white.opacity(0.3), lineWidth: 1.5)
+                        .frame(width: 14, height: 14)
+                    if isSelected {
+                        Circle()
+                            .fill(Color.purple)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(isSelected ? .white : .gray)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(isSelected ? Color.purple.opacity(0.2) : Color.white.opacity(0.05))
+                    .overlay(RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(isSelected ? Color.purple.opacity(0.5) : Color.clear, lineWidth: 1))
+            )
+        }
+    }
+}
+
 }
 
 struct TrainingStepView: View {
