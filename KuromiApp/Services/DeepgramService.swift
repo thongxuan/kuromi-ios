@@ -11,6 +11,7 @@ class DeepgramService: NSObject, ObservableObject {
     private let language: String
 
     var onTranscript: ((String, Bool) -> Void)? // text, isFinal
+    var onUtteranceEnd: (() -> Void)?
 
     init(apiKey: String, language: String = "vi") {
         self.language = language
@@ -32,7 +33,10 @@ class DeepgramService: NSObject, ObservableObject {
             URLQueryItem(name: "language", value: language),
             URLQueryItem(name: "interim_results", value: "true"),
             URLQueryItem(name: "smart_format", value: "true"),
-            URLQueryItem(name: "punctuate", value: "true")
+            URLQueryItem(name: "punctuate", value: "true"),
+            URLQueryItem(name: "vad_events", value: "true"),
+            URLQueryItem(name: "utterance_end_ms", value: "1500"),
+            URLQueryItem(name: "endpointing", value: "500")
         ]
         guard let url = urlComponents.url else { return }
 
@@ -115,8 +119,15 @@ class DeepgramService: NSObject, ObservableObject {
 
     private func handleTranscript(_ json: String) {
         guard let data = json.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let channel = obj["channel"] as? [String: Any],
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+        // Handle UtteranceEnd event
+        if let type = obj["type"] as? String, type == "UtteranceEnd" {
+            DispatchQueue.main.async { self.onUtteranceEnd?() }
+            return
+        }
+
+        guard let channel = obj["channel"] as? [String: Any],
               let alternatives = channel["alternatives"] as? [[String: Any]],
               let first = alternatives.first,
               let transcript = first["transcript"] as? String,

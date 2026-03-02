@@ -7,15 +7,34 @@ class ElevenLabsService: NSObject, ObservableObject {
     @Published var voices: [VoiceOption] = []
 
     private let apiKey: String
-    private let audioService = AudioService.shared
-    private var currentDataTask: URLSessionDataTask?
     private var audioPlayer: AVAudioPlayer?
+    private var streamTask: URLSessionDataTask?
+    private var streamDelegate: TTSStreamDelegate?
+
+    // Streaming PCM state
+    private let audioEngine = AVAudioEngine()
+    private let playerNode = AVAudioPlayerNode()
+    private var pcmBuffer: Data = Data()
+    private let pcmSampleRate: Double = 24000
+    private let chunkThreshold = 48000 * 1 / 3 // ~0.33s worth of 16-bit 24kHz PCM
 
     var onPlaybackFinished: (() -> Void)?
+
+    override init() {
+        self.apiKey = ""
+        super.init()
+    }
 
     init(apiKey: String) {
         self.apiKey = apiKey
         super.init()
+        setupStreamingEngine()
+    }
+
+    private func setupStreamingEngine() {
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: pcmSampleRate, channels: 1, interleaved: false)!
+        audioEngine.attach(playerNode)
+        audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: format)
     }
 
     // MARK: - Premade voices
@@ -43,38 +62,29 @@ class ElevenLabsService: NSObject, ObservableObject {
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
 
         let (data, response) = try await URLSession.shared.data(for: request)
-
-        // Check HTTP status
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             let body = String(data: data, encoding: .utf8) ?? "unknown"
             throw NSError(domain: "ElevenLabs", code: http.statusCode,
                           userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"])
         }
-
-        let decoder = JSONDecoder()
-        let voicesResponse = try decoder.decode(VoicesResponse.self, from: data)
-
-        // Merge với premade voices mặc định
+        let voicesResponse = try JSONDecoder().decode(VoicesResponse.self, from: data)
         var allVoices = voicesResponse.voices
         let accountIds = Set(allVoices.map { $0.voice_id })
         for v in ElevenLabsService.premadeVoices where !accountIds.contains(v.voice_id) {
             allVoices.append(v)
         }
-
-        DispatchQueue.main.async {
-            self.voices = allVoices
-        }
+        DispatchQueue.main.async { self.voices = allVoices }
         return allVoices
     }
 
-    // MARK: - Text to Speech
+    // MARK: - Streaming TTS
 
-    func speak(text: String, voiceID: String) {
+    func speak(text: String, voiceID: String, language: String = "vi") {
         guard !text.isEmpty else { return }
         stopSpeaking()
         DispatchQueue.main.async { self.isPlaying = true }
 
-        let urlStr = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)"
+        let urlStr = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)/stream"
         guard let url = URL(string: urlStr) else { return }
 
         var request = URLRequest(url: url)
@@ -85,47 +95,78 @@ class ElevenLabsService: NSObject, ObservableObject {
         let body: [String: Any] = [
             "text": text,
             "model_id": "eleven_multilingual_v2",
+            "language_code": language,
             "voice_settings": [
                 "stability": 0.5,
-                "similarity_boost": 0.75
-            ]
+                "similarity_boost": 0.75,
+                "style": 0.0,
+                "use_speaker_boost": true
+            ],
+            "output_format": "pcm_24000"
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-            guard let data = data, error == nil else {
-                print("ElevenLabs TTS error: \(error?.localizedDescription ?? "unknown")")
-                DispatchQueue.main.async { self.isPlaying = false }
-                return
-            }
-            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                let body = String(data: data, encoding: .utf8) ?? ""
-                print("ElevenLabs TTS HTTP \(http.statusCode): \(body)")
-                DispatchQueue.main.async { self.isPlaying = false }
-                return
-            }
-            self.playMP3Data(data)
-        }
-        currentDataTask = task
-        task.resume()
-    }
-
-    private func playMP3Data(_ data: Data) {
+        // Start audio engine
         do {
-            // Configure audio session for playback
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
             try session.setActive(true)
-
-            audioPlayer = try AVAudioPlayer(data: data)
-            audioPlayer?.delegate = self
-            audioPlayer?.volume = 1.0
-            audioPlayer?.prepareToPlay()
-            audioPlayer?.play()
-            DispatchQueue.main.async { self.isPlaying = true }
+            if !audioEngine.isRunning { try audioEngine.start() }
+            playerNode.play()
         } catch {
-            print("AVAudioPlayer error: \(error)")
+            print("Audio engine start error: \(error)")
+        }
+
+        pcmBuffer = Data()
+        let delegate = TTSStreamDelegate(service: self)
+        streamDelegate = delegate
+        let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+        let task = session.dataTask(with: request)
+        streamTask = task
+        task.resume()
+    }
+
+    func stopSpeaking() {
+        streamTask?.cancel()
+        streamTask = nil
+        streamDelegate = nil
+        playerNode.stop()
+        pcmBuffer = Data()
+        audioPlayer?.stop()
+        audioPlayer = nil
+        DispatchQueue.main.async { self.isPlaying = false }
+    }
+
+    // MARK: - PCM Streaming internals
+
+    fileprivate func didReceivePCMData(_ data: Data) {
+        pcmBuffer.append(data)
+        // Play in chunks to reduce latency
+        while pcmBuffer.count >= chunkThreshold {
+            let chunk = pcmBuffer.prefix(chunkThreshold)
+            pcmBuffer = pcmBuffer.dropFirst(chunkThreshold)
+            scheduleChunk(Data(chunk))
+        }
+    }
+
+    fileprivate func didFinishStream() {
+        // Play remaining buffer
+        if !pcmBuffer.isEmpty {
+            scheduleChunk(pcmBuffer)
+            pcmBuffer = Data()
+        }
+        // Wait for playback to finish
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.waitForPlaybackEnd()
+        }
+    }
+
+    private func waitForPlaybackEnd() {
+        if playerNode.isPlaying {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                self?.waitForPlaybackEnd()
+            }
+        } else {
             DispatchQueue.main.async {
                 self.isPlaying = false
                 self.onPlaybackFinished?()
@@ -133,30 +174,56 @@ class ElevenLabsService: NSObject, ObservableObject {
         }
     }
 
-    func stopSpeaking() {
-        currentDataTask?.cancel()
-        currentDataTask = nil
-        audioPlayer?.stop()
-        audioPlayer = nil
-        audioService.stopPlayback()
-        DispatchQueue.main.async { self.isPlaying = false }
+    private func scheduleChunk(_ data: Data) {
+        guard let buffer = makePCMBuffer(from: data) else { return }
+        if !audioEngine.isRunning { try? audioEngine.start() }
+        if !playerNode.isPlaying { playerNode.play() }
+        playerNode.scheduleBuffer(buffer, completionHandler: nil)
     }
 
-    // MARK: - Preview Voice
+    private func makePCMBuffer(from data: Data) -> AVAudioPCMBuffer? {
+        let frameCount = UInt32(data.count / 2)
+        guard frameCount > 0,
+              let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: pcmSampleRate, channels: 1, interleaved: false),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return nil }
+        buffer.frameLength = frameCount
+        data.withUnsafeBytes { raw in
+            let int16 = raw.bindMemory(to: Int16.self)
+            if let floats = buffer.floatChannelData?[0] {
+                for i in 0..<Int(frameCount) {
+                    floats[i] = Float(int16[i]) / 32768.0
+                }
+            }
+        }
+        return buffer
+    }
+
+    // MARK: - Preview
 
     func previewVoice(_ voice: VoiceOption) {
         guard let previewURL = voice.preview_url, let url = URL(string: previewURL) else { return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            if let data = data { self?.playMP3Data(data) }
+            guard let data = data else { return }
+            DispatchQueue.main.async {
+                try? self?.audioPlayer = AVAudioPlayer(data: data)
+                self?.audioPlayer?.play()
+            }
         }.resume()
     }
 }
 
-extension ElevenLabsService: AVAudioPlayerDelegate {
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        DispatchQueue.main.async {
-            self.isPlaying = false
-            self.onPlaybackFinished?()
-        }
+// MARK: - Stream Delegate
+
+private class TTSStreamDelegate: NSObject, URLSessionDataDelegate {
+    weak var service: ElevenLabsService?
+    init(service: ElevenLabsService) { self.service = service }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        service?.didReceivePCMData(data)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if error == nil { service?.didFinishStream() }
+        else { DispatchQueue.main.async { self.service?.isPlaying = false } }
     }
 }

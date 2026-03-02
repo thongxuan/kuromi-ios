@@ -86,8 +86,16 @@ class ChatViewModel: ObservableObject {
         deepgramService?.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
                 self?.currentTranscript = text
-                if isFinal && !text.isEmpty {
-                    self?.finalizeSpeech(text)
+            }
+        }
+
+        // Auto-finalize khi Deepgram detect hết câu
+        deepgramService?.onUtteranceEnd = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self, case .userSpeaking = self.chatState else { return }
+                let text = self.currentTranscript
+                if !text.isEmpty {
+                    self.finalizeSpeech(text)
                 }
             }
         }
@@ -214,7 +222,7 @@ class ChatViewModel: ObservableObject {
         messages.append(msg)
         chatState = .aiSpeaking
         let voiceID = settings.selectedVoiceID.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : settings.selectedVoiceID
-        elevenLabsService?.speak(text: text, voiceID: voiceID)
+        elevenLabsService?.speak(text: text, voiceID: voiceID, language: settings.sttLanguage)
     }
 
     // MARK: - AI Interrupt
