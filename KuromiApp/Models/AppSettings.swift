@@ -7,6 +7,7 @@ struct AppSettings: Codable {
     var elevenLabsAPIKey: String
     var selectedVoiceID: String
     var selectedVoiceName: String
+    var sttLanguage: String  // Deepgram language code, e.g. "vi", "en"
     var wakeWord: String
     var wakeWordSamples: [String] // base64 encoded audio samples
 

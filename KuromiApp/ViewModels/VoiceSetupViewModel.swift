@@ -27,6 +27,7 @@ class VoiceSetupViewModel: ObservableObject {
     @Published var filterAge: VoiceAge = .young
     @Published var filterTone: VoiceTone = .high
     @Published var filterDescription: String = ""
+    @Published var selectedLanguage: STTLanguage = .vietnamese
 
     // Matched voices
     @Published var matchedVoices: [VoiceOption] = []
@@ -51,6 +52,7 @@ class VoiceSetupViewModel: ObservableObject {
             selectedVoiceID = settings.selectedVoiceID
             selectedVoiceName = settings.selectedVoiceName
             wakeWord = settings.wakeWord.isEmpty ? "hey kuromi" : settings.wakeWord
+            selectedLanguage = STTLanguage.from(code: settings.sttLanguage)
         }
 
         wakeWordService.onTrainingSampleCaptured = { [weak self] text in
@@ -174,6 +176,7 @@ class VoiceSetupViewModel: ObservableObject {
         guard var settings = AppSettings.load() else { return }
         settings.selectedVoiceID = selectedVoiceID
         settings.selectedVoiceName = selectedVoiceName
+        settings.sttLanguage = selectedLanguage.code
         settings.wakeWord = computeFinalWakeWord()
         settings.save()
     }

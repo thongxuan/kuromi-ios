@@ -36,7 +36,7 @@ class ChatViewModel: ObservableObject {
     }
 
     private func setupServices() {
-        deepgramService = DeepgramService(apiKey: settings.deepgramAPIKey)
+        deepgramService = DeepgramService(apiKey: settings.deepgramAPIKey, language: settings.sttLanguage)
         elevenLabsService = ElevenLabsService(apiKey: settings.elevenLabsAPIKey)
 
         // Gateway
@@ -248,7 +248,7 @@ class ChatViewModel: ObservableObject {
     func reloadSettings() {
         guard let newSettings = AppSettings.load() else { return }
         settings = newSettings
-        deepgramService = DeepgramService(apiKey: newSettings.deepgramAPIKey)
+        deepgramService = DeepgramService(apiKey: newSettings.deepgramAPIKey, language: newSettings.sttLanguage)
         elevenLabsService = ElevenLabsService(apiKey: newSettings.elevenLabsAPIKey)
         elevenLabsService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.async { self?.chatState = .idle }

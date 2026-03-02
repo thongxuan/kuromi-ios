@@ -125,6 +125,7 @@ class SetupViewModel: ObservableObject {
             elevenLabsAPIKey: "",
             selectedVoiceID: "",
             selectedVoiceName: "",
+            sttLanguage: "vi",
             wakeWord: "hey kuromi",
             wakeWordSamples: []
         )

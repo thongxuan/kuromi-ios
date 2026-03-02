@@ -8,10 +8,12 @@ class DeepgramService: NSObject, ObservableObject {
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession!
     private let apiKey: String
+    private let language: String
 
     var onTranscript: ((String, Bool) -> Void)? // text, isFinal
 
-    init(apiKey: String) {
+    init(apiKey: String, language: String = "vi") {
+        self.language = language
         self.apiKey = apiKey
         super.init()
         urlSession = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
@@ -27,7 +29,7 @@ class DeepgramService: NSObject, ObservableObject {
             URLQueryItem(name: "sample_rate", value: "16000"),
             URLQueryItem(name: "channels", value: "1"),
             URLQueryItem(name: "model", value: "nova-2"),
-            URLQueryItem(name: "language", value: "vi"),
+            URLQueryItem(name: "language", value: language),
             URLQueryItem(name: "interim_results", value: "true"),
             URLQueryItem(name: "smart_format", value: "true"),
             URLQueryItem(name: "punctuate", value: "true")

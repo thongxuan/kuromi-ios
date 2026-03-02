@@ -5,6 +5,8 @@ struct VoiceSetupView: View {
     var isEditMode: Bool = false
     @StateObject private var viewModel = VoiceSetupViewModel()
     @State private var showingSaveConfirm = false
+    @State private var showLanguagePicker = false
+    @State private var languageSearch = ""
 
     var body: some View {
         ZStack {
@@ -42,6 +44,11 @@ struct VoiceSetupView: View {
 
                 ScrollView {
                     VStack(spacing: 28) {
+                        // Language Section
+                        languageSection
+
+                        Divider().background(Color.white.opacity(0.1))
+
                         // Wake Word Training Section
                         wakeWordSection
 
@@ -66,6 +73,50 @@ struct VoiceSetupView: View {
 
     private var canSave: Bool {
         !viewModel.selectedVoiceID.isEmpty && !viewModel.matchedVoices.isEmpty
+    }
+
+    // MARK: - Language Section
+
+    private var languageSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ngôn ngữ nhận giọng")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                Text("Ngôn ngữ chính anh/chị sẽ nói")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+
+            Button(action: { showLanguagePicker = true }) {
+                HStack {
+                    Text(viewModel.selectedLanguage.flag)
+                        .font(.title3)
+                    Text(viewModel.selectedLanguage.name)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.07))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1))
+                )
+            }
+        }
+        .sheet(isPresented: $showLanguagePicker) {
+            LanguagePickerSheet(
+                search: $languageSearch,
+                selected: $viewModel.selectedLanguage,
+                onDismiss: { showLanguagePicker = false }
+            )
+        }
     }
 
     // MARK: - Wake Word Section
@@ -417,6 +468,84 @@ struct VoiceRowView: View {
                         .strokeBorder(isSelected ? Color.purple.opacity(0.4) : Color.clear, lineWidth: 1)
                 )
         )
+    }
+}
+
+struct LanguagePickerSheet: View {
+    @Binding var search: String
+    @Binding var selected: STTLanguage
+    let onDismiss: () -> Void
+
+    private var filtered: [STTLanguage] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return STTLanguage.popular }
+        return STTLanguage.popular.filter {
+            $0.name.lowercased().contains(q) || $0.code.lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    // Search bar
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+                        TextField("Tìm ngôn ngữ...", text: $search)
+                            .foregroundColor(.white)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.07)))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    if filtered.isEmpty {
+                        Spacer()
+                        Text("Không tìm thấy ngôn ngữ")
+                            .foregroundColor(.gray)
+                            .font(.subheadline)
+                        Spacer()
+                    } else {
+                        List(filtered) { lang in
+                            Button(action: {
+                                selected = lang
+                                search = ""
+                                onDismiss()
+                            }) {
+                                HStack(spacing: 12) {
+                                    Text(lang.flag).font(.title3)
+                                    Text(lang.name)
+                                        .foregroundColor(.white)
+                                        .font(.body)
+                                    Spacer()
+                                    if selected.code == lang.code {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.purple)
+                                            .font(.subheadline)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .listRowBackground(Color.white.opacity(selected.code == lang.code ? 0.08 : 0.04))
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                    }
+                }
+            }
+            .navigationTitle("Chọn ngôn ngữ")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Xong") { search = ""; onDismiss() }
+                        .foregroundColor(.purple)
+                }
+            }
+        }
     }
 }
 
