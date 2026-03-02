@@ -29,6 +29,8 @@ class ChatViewModel: ObservableObject {
     private var pendingWakeInput: String?
     private var connectTimer: Timer?
     private var silenceTimer: Timer?
+    private var lastMeaningfulTranscript: String = ""
+    private var transcriptStableCount: Int = 0
     @Published var showReconnectButton: Bool = false
 
     init() {
@@ -88,8 +90,15 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.currentTranscript = text
-                // Reset silence timer mỗi khi có text mới
-                self.resetSilenceTimer()
+
+                // Chỉ reset timer nếu text thay đổi đáng kể
+                // (tránh tiếng ồn làm timer reset liên tục)
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                let hasNewContent = trimmed.count > self.lastMeaningfulTranscript.count + 2
+                if hasNewContent {
+                    self.lastMeaningfulTranscript = trimmed
+                    self.resetSilenceTimer()
+                }
             }
         }
 
@@ -195,6 +204,7 @@ class ChatViewModel: ObservableObject {
     private func startUserSpeaking() {
         chatState = .userSpeaking
         currentTranscript = ""
+        lastMeaningfulTranscript = ""
         deepgramService?.connect()
 
         audioService.startRecording { [weak self] buffer in
