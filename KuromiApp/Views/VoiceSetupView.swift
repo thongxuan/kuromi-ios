@@ -65,7 +65,7 @@ struct VoiceSetupView: View {
     }
 
     private var canSave: Bool {
-        !viewModel.selectedVoiceID.isEmpty
+        !viewModel.selectedVoiceID.isEmpty && !viewModel.matchedVoices.isEmpty
     }
 
     // MARK: - Wake Word Section
@@ -249,7 +249,18 @@ struct VoiceSetupView: View {
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
 
                 // Top matched voices
-                if !viewModel.matchedVoices.isEmpty {
+                if viewModel.matchedVoices.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Không tìm thấy giọng phù hợp. Thử thay đổi bộ lọc.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.orange.opacity(0.08)))
+                } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Giọng phù hợp nhất")
                             .font(.caption)
