@@ -384,8 +384,6 @@ struct RadioChip: View {
     }
 }
 
-}
-
 struct TrainingStepView: View {
     let stepIndex: Int
     let isCompleted: Bool
