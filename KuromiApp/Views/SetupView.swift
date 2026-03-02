@@ -49,7 +49,8 @@ struct SetupView: View {
                         placeholder: "dg_...",
                         text: $viewModel.deepgramAPIKey,
                         icon: "mic.fill",
-                        isSecure: true
+                        isSecure: true,
+                        validation: viewModel.deepgramValidation
                     )
 
                     KuromiTextField(
@@ -57,7 +58,8 @@ struct SetupView: View {
                         placeholder: "sk_...",
                         text: $viewModel.elevenLabsAPIKey,
                         icon: "speaker.wave.2.fill",
-                        isSecure: true
+                        isSecure: true,
+                        validation: viewModel.elevenLabsValidation
                     )
                 }
                 .padding(.horizontal, 24)
@@ -88,8 +90,8 @@ struct SetupView: View {
                                 .fill(Color.white)
                         )
                     }
-                    .disabled(!viewModel.isValid)
-                    .opacity(viewModel.isValid ? 1.0 : 0.4)
+                    .disabled(!viewModel.canContinue)
+                    .opacity(viewModel.canContinue ? 1.0 : 0.4)
 
                     if viewModel.isEditMode {
                         Button("Cancel") {
@@ -118,8 +120,17 @@ struct KuromiTextField: View {
     @Binding var text: String
     var icon: String = ""
     var isSecure: Bool = false
+    var validation: ValidationState = .idle
 
     @State private var isRevealed = false
+
+    private var borderColor: Color {
+        switch validation {
+        case .success: return .green.opacity(0.6)
+        case .failure: return .red.opacity(0.6)
+        default: return .white.opacity(0.1)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -133,6 +144,25 @@ struct KuromiTextField: View {
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(.gray)
+                Spacer()
+                // Validation badge
+                switch validation {
+                case .checking:
+                    ProgressView().scaleEffect(0.7).tint(.gray)
+                case .success:
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                case .failure(let msg):
+                    HStack(spacing: 3) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                        Text(msg).foregroundColor(.red)
+                    }
+                    .font(.caption2)
+                case .idle:
+                    EmptyView()
+                }
             }
 
             HStack {
@@ -163,7 +193,7 @@ struct KuromiTextField: View {
                     .fill(Color.white.opacity(0.07))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                            .strokeBorder(borderColor, lineWidth: 1)
                     )
             )
         }
