@@ -100,11 +100,7 @@ struct SetupView: View {
 
     private func continueAction() {
         guard viewModel.save() != nil else { return }
-        if viewModel.isEditMode {
-            appState.closeSetupEdit()
-        } else {
-            appState.currentScreen = .voiceSetup
-        }
+        appState.currentScreen = .voiceSetup
     }
 }
 
