@@ -16,6 +16,23 @@ class ElevenLabsService: ObservableObject {
         self.apiKey = apiKey
     }
 
+    // MARK: - Premade voices
+
+    static let premadeVoices: [VoiceOption] = [
+        VoiceOption(voice_id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", labels: ["accent": "american", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", labels: ["accent": "american", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", labels: ["accent": "american", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "ErXwobaYiN019PkySvjV", name: "Antoni", labels: ["accent": "american", "gender": "male"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", labels: ["accent": "american", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", labels: ["accent": "american", "gender": "male"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "VR6AewLTigWG4xSOukaG", name: "Arnold", labels: ["accent": "american", "gender": "male"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "pNInz6obpgDQGcFmaJgB", name: "Adam", labels: ["accent": "american", "gender": "male"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", labels: ["accent": "american", "gender": "male"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", labels: ["accent": "english-swedish", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", labels: ["accent": "british", "gender": "female"], preview_url: nil, category: "premade"),
+        VoiceOption(voice_id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", labels: ["accent": "british", "gender": "male"], preview_url: nil, category: "premade"),
+    ]
+
     // MARK: - Fetch Voices
 
     func fetchVoices() async throws -> [VoiceOption] {
@@ -35,10 +52,17 @@ class ElevenLabsService: ObservableObject {
         let decoder = JSONDecoder()
         let voicesResponse = try decoder.decode(VoicesResponse.self, from: data)
 
-        DispatchQueue.main.async {
-            self.voices = voicesResponse.voices
+        // Merge với premade voices mặc định
+        var allVoices = voicesResponse.voices
+        let accountIds = Set(allVoices.map { $0.voice_id })
+        for v in ElevenLabsService.premadeVoices where !accountIds.contains(v.voice_id) {
+            allVoices.append(v)
         }
-        return voicesResponse.voices
+
+        DispatchQueue.main.async {
+            self.voices = allVoices
+        }
+        return allVoices
     }
 
     // MARK: - Text to Speech
