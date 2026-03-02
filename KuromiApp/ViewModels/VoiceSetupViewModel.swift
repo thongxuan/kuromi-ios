@@ -27,7 +27,7 @@ class VoiceSetupViewModel: ObservableObject {
     @Published var filterAge: VoiceAge = .young
     @Published var filterTone: VoiceTone = .high
     @Published var filterDescription: String = ""
-    @Published var selectedLanguage: STTLanguage = .vietnamese
+    @Published var selectedLanguage: STTLanguage = STTLanguage.popular[0]
 
     // Matched voices
     @Published var matchedVoices: [VoiceOption] = []

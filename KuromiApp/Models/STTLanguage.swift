@@ -1,6 +1,6 @@
 import Foundation
 
-struct STTLanguage: Identifiable, Hashable {
+struct STTLanguage: Identifiable, Hashable, Equatable, Codable {
     let code: String
     let name: String
     let flag: String

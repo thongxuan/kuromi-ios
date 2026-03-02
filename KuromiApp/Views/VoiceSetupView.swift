@@ -473,6 +473,7 @@ struct LanguagePickerSheet: View {
     @Binding var search: String
     @Binding var selected: STTLanguage
     let onDismiss: () -> Void
+    @State private var localSelected: STTLanguage = STTLanguage.popular[0]
 
     private var filtered: [STTLanguage] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
@@ -510,6 +511,7 @@ struct LanguagePickerSheet: View {
                     } else {
                         List(filtered) { lang in
                             Button(action: {
+                                localSelected = lang
                                 selected = lang
                                 search = ""
                                 onDismiss()
@@ -520,7 +522,7 @@ struct LanguagePickerSheet: View {
                                         .foregroundColor(.white)
                                         .font(.body)
                                     Spacer()
-                                    if selected.code == lang.code {
+                                    if localSelected.code == lang.code {
                                         Image(systemName: "checkmark")
                                             .foregroundColor(.purple)
                                             .font(.subheadline)
@@ -528,13 +530,14 @@ struct LanguagePickerSheet: View {
                                 }
                                 .padding(.vertical, 4)
                             }
-                            .listRowBackground(Color.white.opacity(selected.code == lang.code ? 0.08 : 0.04))
+                            .listRowBackground(Color.white.opacity(localSelected.code == lang.code ? 0.08 : 0.04))
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
                     }
                 }
             }
+            .onAppear { localSelected = selected }
             .navigationTitle("Chọn ngôn ngữ")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
