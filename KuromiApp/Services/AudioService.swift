@@ -52,15 +52,51 @@ class AudioService: NSObject, ObservableObject {
 
         switch changeReason {
         case .newDeviceAvailable:
-            // AirPods/Bluetooth connected — switch to it
             switchToBluetooth()
         case .oldDeviceUnavailable:
-            // AirPods disconnected — fallback to speaker
             switchToSpeaker()
         default:
             break
         }
         updateBluetoothState()
+
+        // Nếu đang recording thì restart engine với format mới
+        if isRecording {
+            restartRecording()
+        }
+    }
+
+    private func restartRecording() {
+        guard let callback = audioBufferCallback else { return }
+        // Stop current tap + engine
+        if engine.isRunning {
+            inputNode.removeTap(onBus: 0)
+            engine.stop()
+        }
+        // Short delay để system cập nhật format mới
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self else { return }
+            // Reinstall tap với format mới
+            let inputFormat = self.inputNode.outputFormat(forBus: 0)
+            self.inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+                guard let self = self else { return }
+                if let channelData = buffer.floatChannelData?[0] {
+                    let frameCount = Int(buffer.frameLength)
+                    var sum: Float = 0
+                    for i in 0..<frameCount { sum += abs(channelData[i]) }
+                    DispatchQueue.main.async {
+                        self.inputLevel = frameCount > 0 ? sum / Float(frameCount) : 0
+                    }
+                }
+                callback(buffer)
+            }
+            do {
+                try self.engine.start()
+                print("Audio engine restarted after route change")
+            } catch {
+                print("Engine restart error: \(error)")
+            }
+        }
     }
 
     private func switchToBluetooth() {
