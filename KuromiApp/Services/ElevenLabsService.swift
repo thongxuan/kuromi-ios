@@ -9,6 +9,7 @@ class ElevenLabsService: ObservableObject {
     private let apiKey: String
     private let audioService = AudioService.shared
     private var currentDataTask: URLSessionDataTask?
+    private var audioPlayer: AVAudioPlayer?
 
     var onPlaybackFinished: (() -> Void)?
 
@@ -72,7 +73,7 @@ class ElevenLabsService: ObservableObject {
         stopSpeaking()
         DispatchQueue.main.async { self.isPlaying = true }
 
-        let urlStr = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)/stream"
+        let urlStr = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)"
         guard let url = URL(string: urlStr) else { return }
 
         var request = URLRequest(url: url)
@@ -86,20 +87,56 @@ class ElevenLabsService: ObservableObject {
             "voice_settings": [
                 "stability": 0.5,
                 "similarity_boost": 0.75
-            ],
-            "output_format": "pcm_24000"
+            ]
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        let session = URLSession(configuration: .default, delegate: StreamDelegate(service: self), delegateQueue: nil)
-        let task = session.dataTask(with: request)
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            guard let data = data, error == nil else {
+                print("ElevenLabs TTS error: \(error?.localizedDescription ?? "unknown")")
+                DispatchQueue.main.async { self.isPlaying = false }
+                return
+            }
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                print("ElevenLabs TTS HTTP \(http.statusCode): \(body)")
+                DispatchQueue.main.async { self.isPlaying = false }
+                return
+            }
+            self.playMP3Data(data)
+        }
         currentDataTask = task
         task.resume()
+    }
+
+    private func playMP3Data(_ data: Data) {
+        do {
+            // Configure audio session for playback
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setActive(true)
+
+            audioPlayer = try AVAudioPlayer(data: data)
+            audioPlayer?.delegate = self
+            audioPlayer?.volume = 1.0
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
+            DispatchQueue.main.async { self.isPlaying = true }
+        } catch {
+            print("AVAudioPlayer error: \(error)")
+            DispatchQueue.main.async {
+                self.isPlaying = false
+                self.onPlaybackFinished?()
+            }
+        }
     }
 
     func stopSpeaking() {
         currentDataTask?.cancel()
         currentDataTask = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
         audioService.stopPlayback()
         DispatchQueue.main.async { self.isPlaying = false }
     }
@@ -109,38 +146,16 @@ class ElevenLabsService: ObservableObject {
     func previewVoice(_ voice: VoiceOption) {
         guard let previewURL = voice.preview_url, let url = URL(string: previewURL) else { return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            if let data = data {
-                self?.audioService.playAudioData(data)
-            }
+            if let data = data { self?.playMP3Data(data) }
         }.resume()
-    }
-
-    fileprivate func didReceiveData(_ data: Data) {
-        audioService.playAudioData(data)
-    }
-
-    fileprivate func didFinish() {
-        DispatchQueue.main.async {
-            self.isPlaying = false
-            self.onPlaybackFinished?()
-        }
     }
 }
 
-private class StreamDelegate: NSObject, URLSessionDataDelegate {
-    weak var service: ElevenLabsService?
-
-    init(service: ElevenLabsService) {
-        self.service = service
-    }
-
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        service?.didReceiveData(data)
-    }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if error == nil {
-            service?.didFinish()
+extension ElevenLabsService: AVAudioPlayerDelegate {
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            self.isPlaying = false
+            self.onPlaybackFinished?()
         }
     }
 }
