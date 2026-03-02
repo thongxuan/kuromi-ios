@@ -56,8 +56,10 @@ struct VoiceSetupView: View {
             }
         }
         .onAppear {
-            if let settings = AppSettings.load() {
+            if let settings = AppSettings.load(), !settings.elevenLabsAPIKey.isEmpty {
                 viewModel.setupElevenLabs(apiKey: settings.elevenLabsAPIKey)
+            } else {
+                viewModel.voiceLoadError = "ElevenLabs API key not set. Please go back and enter it."
             }
         }
     }

@@ -23,13 +23,22 @@ class ElevenLabsService: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
 
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(VoicesResponse.self, from: data)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        // Check HTTP status
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            let body = String(data: data, encoding: .utf8) ?? "unknown"
+            throw NSError(domain: "ElevenLabs", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"])
+        }
+
+        let decoder = JSONDecoder()
+        let voicesResponse = try decoder.decode(VoicesResponse.self, from: data)
 
         DispatchQueue.main.async {
-            self.voices = response.voices
+            self.voices = voicesResponse.voices
         }
-        return response.voices
+        return voicesResponse.voices
     }
 
     // MARK: - Text to Speech
