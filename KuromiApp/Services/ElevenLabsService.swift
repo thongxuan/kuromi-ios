@@ -61,35 +61,42 @@ class ElevenLabsService: NSObject, ObservableObject {
         return allVoices
     }
 
-    // MARK: - TTS
+    // MARK: - TTS (OpenAI backend)
+
+    var openAIKey: String = ""
 
     func speak(text: String, voiceID: String, language: String = "vi") {
         guard !text.isEmpty else { return }
         stopSpeaking()
         DispatchQueue.main.async { self.isPlaying = true }
 
-        guard let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)") else { return }
+        // Dùng OpenAI TTS thay ElevenLabs
+        let ttsKey = openAIKey.isEmpty ? apiKey : openAIKey
+        guard let url = URL(string: "https://api.openai.com/v1/audio/speech") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        request.setValue("Bearer \(ttsKey)", forHTTPHeaderField: "Authorization")
 
+        // voiceID ở đây là OpenAI voice name (nova, shimmer, etc.)
+        let openAIVoice = voiceID.isEmpty ? "nova" : voiceID
         let body: [String: Any] = [
-            "text": text,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": ["stability": 0.5, "similarity_boost": 0.75, "use_speaker_boost": true]
+            "model": "gpt-4o-mini-tts",
+            "voice": openAIVoice,
+            "input": text,
+            "response_format": "mp3"
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             guard let data = data, error == nil else {
-                print("ElevenLabs error: \(error?.localizedDescription ?? "unknown")")
+                print("TTS error: \(error?.localizedDescription ?? "unknown")")
                 DispatchQueue.main.async { self.isPlaying = false }
                 return
             }
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                print("ElevenLabs HTTP \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
+                print("TTS HTTP \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
                 DispatchQueue.main.async { self.isPlaying = false }
                 return
             }
