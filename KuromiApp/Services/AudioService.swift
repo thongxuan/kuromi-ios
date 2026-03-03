@@ -141,6 +141,31 @@ class AudioService: NSObject, ObservableObject {
         audioEngine.connect(playerNode, to: mainMixer, format: format)
     }
 
+    // MARK: - Mic monitoring (không gửi audio, chỉ đo level)
+
+    func startMonitoring() {
+        guard !isRecording else { return }
+        let inputFormat = inputNode.outputFormat(forBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+            guard let self = self else { return }
+            if let channelData = buffer.floatChannelData?[0] {
+                let frameCount = Int(buffer.frameLength)
+                var sum: Float = 0
+                for i in 0..<frameCount { sum += abs(channelData[i]) }
+                DispatchQueue.main.async {
+                    self.inputLevel = frameCount > 0 ? sum / Float(frameCount) : 0
+                }
+            }
+        }
+        if !engine.isRunning { try? engine.start() }
+    }
+
+    func stopMonitoring() {
+        guard !isRecording else { return }
+        inputNode.removeTap(onBus: 0)
+        DispatchQueue.main.async { self.inputLevel = 0 }
+    }
+
     // MARK: - Recording
 
     func startRecording(bufferCallback: @escaping (AVAudioPCMBuffer) -> Void) {

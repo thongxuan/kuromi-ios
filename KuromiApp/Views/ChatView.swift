@@ -120,7 +120,7 @@ struct ChatView: View {
             case .connecting: return "Connecting to gateway…"
             case .idle: return "Tap to speak or say \"\(AppSettings.load()?.wakeWord ?? "hey kuromi")\""
             case .userSpeaking: return viewModel.currentTranscript.isEmpty ? "Listening…" : viewModel.currentTranscript
-            case .aiSpeaking: return "Tap to interrupt"
+            case .aiSpeaking: return "Listening for your voice…"
             case .error(let msg): return msg
             }
         }()
@@ -168,7 +168,6 @@ struct ChatView: View {
     private var toggleIcon: String {
         switch viewModel.chatState {
         case .userSpeaking: return "stop.fill"
-        case .aiSpeaking: return "hand.raised.fill"
         default: return "mic.fill"
         }
     }
@@ -176,9 +175,8 @@ struct ChatView: View {
     private var toggleLabel: String {
         switch viewModel.chatState {
         case .connecting: return "Connecting…"
-        case .idle: return "Start Speaking"
+        case .idle, .aiSpeaking: return "Start Speaking"
         case .userSpeaking: return "Done Speaking"
-        case .aiSpeaking: return "Interrupt"
         case .error: return "Reconnecting…"
         }
     }
@@ -186,7 +184,6 @@ struct ChatView: View {
     private var toggleForeground: Color {
         switch viewModel.chatState {
         case .userSpeaking: return .white
-        case .aiSpeaking: return .white
         default: return .black
         }
     }
@@ -194,7 +191,6 @@ struct ChatView: View {
     private var toggleBackground: Color {
         switch viewModel.chatState {
         case .userSpeaking: return Color.purple
-        case .aiSpeaking: return Color.purple.opacity(0.6)
         default: return Color.white
         }
     }
