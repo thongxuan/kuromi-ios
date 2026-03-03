@@ -150,13 +150,8 @@ struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
 
-    @State private var rayRotation: Double = 0
-    @State private var rayOpacity: Double = 0
-    @State private var rayLengthScale: CGFloat = 0.8
-
     private let containerSize: CGFloat = 160
-    private let orbBase: CGFloat = 88      // fixed orb size
-    private let rayCount = 12
+    private let orbBase: CGFloat = 88
 
     // Orb scale reactive theo voice level khi user speaking
     private var orbScale: CGFloat {
@@ -179,17 +174,8 @@ struct OrbView: View {
         ZStack {
             // Sun rays (AI speaking only)
             if case .aiSpeaking = chatState {
-                ForEach(0..<rayCount, id: \.self) { i in
-                    let angle = Double(i) / Double(rayCount) * 360.0
-                    RayShape(
-                        angle: angle + rayRotation,
-                        orbRadius: orbBase / 2,
-                        length: 18 * rayLengthScale,
-                        width: 2.5
-                    )
-                    .stroke(Color.purple.opacity(rayOpacity * (i % 2 == 0 ? 1.0 : 0.55)),
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                }
+                SunRaysView(orbRadius: orbBase / 2)
+                    .frame(width: containerSize, height: containerSize)
             }
 
             // Breathing rings (user speaking)
@@ -224,8 +210,6 @@ struct OrbView: View {
         }
         .frame(width: containerSize, height: containerSize)
         .animation(.easeInOut(duration: 0.35), value: orbColor)
-        .onAppear { updateAnimation() }
-        .onChange(of: chatState) { _, _ in updateAnimation() }
     }
 
     private var orbIcon: String {
@@ -237,53 +221,61 @@ struct OrbView: View {
         case .error: return "exclamationmark.triangle"
         }
     }
-
-    private func updateAnimation() {
-        if case .aiSpeaking = chatState {
-            // Rotate rays
-            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
-                rayRotation = 360
-            }
-            // Fade + pulse rays
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                rayOpacity = 0.75
-                rayLengthScale = 1.25
-            }
-        } else {
-            withAnimation(.easeOut(duration: 0.3)) {
-                rayOpacity = 0
-                rayLengthScale = 0.8
-                rayRotation = 0
-            }
-        }
-    }
 }
 
-// Hình dạng một tia sáng
-struct RayShape: Shape {
-    var angle: Double    // degrees
-    var orbRadius: CGFloat
-    var length: CGFloat
-    var width: CGFloat
+// MARK: - Sun Rays (AI speaking)
+struct SunRaysView: View {
+    let orbRadius: CGFloat
 
-    func path(in rect: CGRect) -> Path {
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let rad = angle * Double.pi / 180
-        let gap: CGFloat = 4
-        let cosVal = CGFloat(Foundation.cos(rad))
-        let sinVal = CGFloat(Foundation.sin(rad))
-        let start = CGPoint(
-            x: center.x + cosVal * (orbRadius + gap),
-            y: center.y + sinVal * (orbRadius + gap)
-        )
-        let end = CGPoint(
-            x: center.x + cosVal * (orbRadius + gap + length),
-            y: center.y + sinVal * (orbRadius + gap + length)
-        )
-        var p = Path()
-        p.move(to: start)
-        p.addLine(to: end)
-        return p
+    private let rayCount = 12
+    private let segmentsPerRay = 5
+    private let cycleDuration: Double = 1.0  // 1 chu kỳ bắn ra
+    private let maxReach: CGFloat = 40        // khoảng cách tia bắn tối đa
+    private let segLen: CGFloat = 7           // chiều dài mỗi segment
+    private let gap: CGFloat = 5             // khoảng cách từ viền orb
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            Canvas { context, size in
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                // global phase 0→1 liên tục
+                let globalPhase = CGFloat(t.truncatingRemainder(dividingBy: cycleDuration) / cycleDuration)
+
+                for rayIndex in 0..<rayCount {
+                    let angle = Double(rayIndex) / Double(rayCount) * 2.0 * Double.pi
+                    let cosA = CGFloat(Foundation.cos(angle))
+                    let sinA = CGFloat(Foundation.sin(angle))
+
+                    // offset mỗi ray lệch pha nhau để không đồng pha
+                    let rayOffset = CGFloat(rayIndex) / CGFloat(rayCount)
+
+                    for seg in 0..<segmentsPerRay {
+                        let segOffset = CGFloat(seg) / CGFloat(segmentsPerRay)
+                        // phase của segment này trong chu kỳ
+                        var p = (globalPhase + segOffset + rayOffset * 0.3).truncatingRemainder(dividingBy: 1.0)
+
+                        // dist: từ 0→maxReach trong một chu kỳ
+                        let dist = gap + p * maxReach
+
+                        // opacity: cao gần orb, fade dần khi ra xa
+                        let opacity = Double(1.0 - p) * 0.85
+
+                        let sx = center.x + cosA * (orbRadius + dist)
+                        let sy = center.y + sinA * (orbRadius + dist)
+                        let ex = center.x + cosA * (orbRadius + dist + segLen)
+                        let ey = center.y + sinA * (orbRadius + dist + segLen)
+
+                        var path = Path()
+                        path.move(to: CGPoint(x: sx, y: sy))
+                        path.addLine(to: CGPoint(x: ex, y: ey))
+                        context.stroke(path,
+                                       with: .color(.purple.opacity(opacity)),
+                                       style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    }
+                }
+            }
+        }
     }
 }
 
