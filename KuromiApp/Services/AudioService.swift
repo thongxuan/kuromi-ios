@@ -204,7 +204,7 @@ class AudioService: NSObject, ObservableObject {
 
     func stopRecording() {
         inputNode.removeTap(onBus: 0)
-        // Không stop engine — giữ để coexist với AVAudioPlayer
+        if engine.isRunning { engine.stop() }
         DispatchQueue.main.async {
             self.isRecording = false
             self.inputLevel = 0
@@ -212,7 +212,6 @@ class AudioService: NSObject, ObservableObject {
     }
 
     func stopEngineForPlayback() {
-        // Không cần stop engine nữa — session .playAndRecord handle cả 2
         stopRecording()
     }
 
