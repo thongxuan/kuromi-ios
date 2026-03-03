@@ -8,9 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		AA000001 /* KuromiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* KuromiApp.swift */; };
-		AA000002 /* AppSettings.swift in Sources */;
-		2FF86664C9E04D37B9F91CDE /* ProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */; }; = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */;
-		F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderConfig.swift; sourceTree = "<group>"; };; };
+		AA000002 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */; };
+		2FF86664C9E04D37B9F91CDE /* ProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */; };
+		6596800123C14667A5B6B3CA /* ProviderSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */; };
 		AA000003 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* Message.swift */; };
 		BB000014 /* STTLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100014 /* STTLanguage.swift */; };
 		AA000004 /* VoiceOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100004 /* VoiceOption.swift */; };
@@ -18,9 +18,7 @@
 		AA000006 /* VoiceSetupViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100006 /* VoiceSetupViewModel.swift */; };
 		AA000007 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100007 /* ChatViewModel.swift */; };
 		AA000008 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100008 /* SetupView.swift */; };
-		AA000009 /* VoiceSetupView.swift in Sources */;
-		6596800123C14667A5B6B3CA /* ProviderSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */; }; = {isa = PBXBuildFile; fileRef = AA100009 /* VoiceSetupView.swift */;
-		AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSetupSheet.swift; sourceTree = "<group>"; };; };
+		AA000009 /* VoiceSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100009 /* VoiceSetupView.swift */; };
 		AA000010 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* ChatView.swift */; };
 		AA000011 /* GatewayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* GatewayService.swift */; };
 		AA000012 /* STTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* STTService.swift */; };
@@ -34,8 +32,9 @@
 
 /* Begin PBXFileReference section */
 		AA100001 /* KuromiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuromiApp.swift; sourceTree = "<group>"; };
-		AA100002 /* AppSettings.swift */;
-		F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderConfig.swift; sourceTree = "<group>"; }; = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		AA100002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderConfig.swift; sourceTree = "<group>"; };
+		AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSetupSheet.swift; sourceTree = "<group>"; };
 		AA100003 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		BB100014 /* STTLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTLanguage.swift; sourceTree = "<group>"; };
 		AA100004 /* VoiceOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOption.swift; sourceTree = "<group>"; };
@@ -43,8 +42,7 @@
 		AA100006 /* VoiceSetupViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupViewModel.swift; sourceTree = "<group>"; };
 		AA100007 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		AA100008 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
-		AA100009 /* VoiceSetupView.swift */;
-		AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSetupSheet.swift; sourceTree = "<group>"; }; = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupView.swift; sourceTree = "<group>"; };
+		AA100009 /* VoiceSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupView.swift; sourceTree = "<group>"; };
 		AA100010 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		AA100011 /* GatewayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayService.swift; sourceTree = "<group>"; };
 		AA100012 /* STTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTService.swift; sourceTree = "<group>"; };
@@ -86,8 +84,8 @@
 		AA400001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				AA100002 /* AppSettings.swift */;
-		F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderConfig.swift; sourceTree = "<group>"; };,
+				AA100002 /* AppSettings.swift */,
+				F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */,
 				AA100003 /* Message.swift */,
 				BB100014 /* STTLanguage.swift */,
 				AA100004 /* VoiceOption.swift */,
@@ -109,8 +107,8 @@
 			isa = PBXGroup;
 			children = (
 				AA100008 /* SetupView.swift */,
-				AA100009 /* VoiceSetupView.swift */;
-		AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSetupSheet.swift; sourceTree = "<group>"; };,
+				AA100009 /* VoiceSetupView.swift */,
+				AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */,
 				AA100010 /* ChatView.swift */,
 			);
 			path = Views;
@@ -223,8 +221,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000001 /* KuromiApp.swift in Sources */,
-				AA000002 /* AppSettings.swift in Sources */;
-		2FF86664C9E04D37B9F91CDE /* ProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46D9C15E474424E833AA1A6 /* ProviderConfig.swift */; };,
+				AA000002 /* AppSettings.swift in Sources */,
+				2FF86664C9E04D37B9F91CDE /* ProviderConfig.swift in Sources */,
 				AA000003 /* Message.swift in Sources */,
 				BB000014 /* STTLanguage.swift in Sources */,
 				AA000004 /* VoiceOption.swift in Sources */,
@@ -232,8 +230,8 @@
 				AA000006 /* VoiceSetupViewModel.swift in Sources */,
 				AA000007 /* ChatViewModel.swift in Sources */,
 				AA000008 /* SetupView.swift in Sources */,
-				AA000009 /* VoiceSetupView.swift in Sources */;
-		6596800123C14667A5B6B3CA /* ProviderSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5079C447AA400E988ABAE9 /* ProviderSetupSheet.swift */; };,
+				AA000009 /* VoiceSetupView.swift in Sources */,
+				6596800123C14667A5B6B3CA /* ProviderSetupSheet.swift in Sources */,
 				AA000010 /* ChatView.swift in Sources */,
 				AA000011 /* GatewayService.swift in Sources */,
 				AA000012 /* STTService.swift in Sources */,
