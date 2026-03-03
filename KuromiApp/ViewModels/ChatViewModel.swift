@@ -31,6 +31,7 @@ class ChatViewModel: ObservableObject {
     private var silenceTimer: Timer?
     private var lastMeaningfulTranscript: String = ""
     private var transcriptStableCount: Int = 0
+    private var accumulatedText: String = ""
     @Published var showReconnectButton: Bool = false
 
     init() {
@@ -89,14 +90,27 @@ class ChatViewModel: ObservableObject {
         deepgramService?.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.currentTranscript = text
 
-                // Chỉ reset timer nếu text thay đổi đáng kể
-                // (tránh tiếng ồn làm timer reset liên tục)
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                let hasNewContent = trimmed.count > self.lastMeaningfulTranscript.count + 2
+                if isFinal {
+                    // Cộng dồn đoạn đã confirm vào accumulated
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        self.accumulatedText = self.accumulatedText.isEmpty
+                            ? trimmed
+                            : self.accumulatedText + " " + trimmed
+                    }
+                    self.currentTranscript = self.accumulatedText
+                } else {
+                    // Interim: hiện accumulated + đoạn đang nói
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    self.currentTranscript = self.accumulatedText.isEmpty
+                        ? trimmed
+                        : (trimmed.isEmpty ? self.accumulatedText : self.accumulatedText + " " + trimmed)
+                }
+
+                let hasNewContent = self.currentTranscript.count > self.lastMeaningfulTranscript.count + 2
                 if hasNewContent {
-                    self.lastMeaningfulTranscript = trimmed
+                    self.lastMeaningfulTranscript = self.currentTranscript
                     self.resetSilenceTimer()
                 }
             }
@@ -229,6 +243,7 @@ class ChatViewModel: ObservableObject {
         chatState = .userSpeaking
         currentTranscript = ""
         lastMeaningfulTranscript = ""
+        accumulatedText = ""
         deepgramService?.connect()
 
         audioService.startRecording { [weak self] buffer in
