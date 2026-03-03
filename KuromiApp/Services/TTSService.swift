@@ -10,6 +10,10 @@ class TTSService: NSObject, ObservableObject {
     private var audioPlayer: AVAudioPlayer?
     private var dataTask: URLSessionDataTask?
 
+    // Queue
+    private var speechQueue: [(text: String, voiceID: String, language: String)] = []
+    private var isProcessingQueue = false
+
     var onPlaybackFinished: (() -> Void)?
 
     override init() {
@@ -67,19 +71,30 @@ class TTSService: NSObject, ObservableObject {
 
     func speak(text: String, voiceID: String, language: String = "vi") {
         guard !text.isEmpty else { return }
-        stopSpeaking()
+        // Thêm vào queue thay vì stop ngay
+        speechQueue.append((text: text, voiceID: voiceID, language: language))
+        processQueue()
+    }
+
+    private func processQueue() {
+        guard !isProcessingQueue, !speechQueue.isEmpty else { return }
+        isProcessingQueue = true
+        let item = speechQueue.removeFirst()
+        fetchAndPlay(text: item.text, voiceID: item.voiceID)
+    }
+
+    private func fetchAndPlay(text: String, voiceID: String) {
         DispatchQueue.main.async { self.isPlaying = true }
 
-        // Dùng OpenAI TTS thay ElevenLabs
         let ttsKey = openAIKey.isEmpty ? apiKey : openAIKey
-        print("TTS speak: openAIKey=\(openAIKey.prefix(8))... ttsKey=\(ttsKey.prefix(8))...")
-        guard let url = URL(string: "https://api.openai.com/v1/audio/speech") else { return }
+        guard let url = URL(string: "https://api.openai.com/v1/audio/speech") else {
+            finishCurrent(); return
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(ttsKey)", forHTTPHeaderField: "Authorization")
 
-        // voiceID ở đây là OpenAI voice name (nova, shimmer, etc.)
         let openAIVoice = voiceID.isEmpty ? "nova" : voiceID
         let body: [String: Any] = [
             "model": "tts-1",
@@ -93,18 +108,29 @@ class TTSService: NSObject, ObservableObject {
             guard let self = self else { return }
             guard let data = data, error == nil else {
                 print("TTS error: \(error?.localizedDescription ?? "unknown")")
-                DispatchQueue.main.async { self.isPlaying = false }
-                return
+                self.finishCurrent(); return
             }
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
                 print("TTS HTTP \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
-                DispatchQueue.main.async { self.isPlaying = false }
-                return
+                self.finishCurrent(); return
             }
             self.playAudioData(data)
         }
         dataTask = task
         task.resume()
+    }
+
+    // Gọi sau mỗi item xong để chạy item tiếp theo
+    private func finishCurrent() {
+        isProcessingQueue = false
+        if speechQueue.isEmpty {
+            DispatchQueue.main.async {
+                self.isPlaying = false
+                self.onPlaybackFinished?()
+            }
+        } else {
+            processQueue()
+        }
     }
 
     private func playAudioData(_ data: Data) {
@@ -143,6 +169,8 @@ class TTSService: NSObject, ObservableObject {
     }
 
     func stopSpeaking() {
+        speechQueue.removeAll()
+        isProcessingQueue = false
         dataTask?.cancel()
         dataTask = nil
         audioPlayer?.stop()
@@ -163,9 +191,6 @@ class TTSService: NSObject, ObservableObject {
 
 extension TTSService: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        DispatchQueue.main.async {
-            self.isPlaying = false
-            self.onPlaybackFinished?()
-        }
+        finishCurrent()
     }
 }
