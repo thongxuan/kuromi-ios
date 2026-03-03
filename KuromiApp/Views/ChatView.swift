@@ -268,15 +268,17 @@ struct RayShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         let center = CGPoint(x: rect.midX, y: rect.midY)
-        let rad = angle * .pi / 180
+        let rad = angle * Double.pi / 180
         let gap: CGFloat = 4
+        let cosVal = CGFloat(Foundation.cos(rad))
+        let sinVal = CGFloat(Foundation.sin(rad))
         let start = CGPoint(
-            x: center.x + cos(rad) * (orbRadius + gap),
-            y: center.y + sin(rad) * (orbRadius + gap)
+            x: center.x + cosVal * (orbRadius + gap),
+            y: center.y + sinVal * (orbRadius + gap)
         )
         let end = CGPoint(
-            x: center.x + cos(rad) * (orbRadius + gap + length),
-            y: center.y + sin(rad) * (orbRadius + gap + length)
+            x: center.x + cosVal * (orbRadius + gap + length),
+            y: center.y + sinVal * (orbRadius + gap + length)
         )
         var p = Path()
         p.move(to: start)
