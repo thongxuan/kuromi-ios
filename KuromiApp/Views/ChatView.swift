@@ -228,11 +228,11 @@ struct SunRaysView: View {
     let orbRadius: CGFloat
 
     private let rayCount = 12
-    private let segmentsPerRay = 5
-    private let cycleDuration: Double = 1.0  // 1 chu kỳ bắn ra
-    private let maxReach: CGFloat = 40        // khoảng cách tia bắn tối đa
-    private let segLen: CGFloat = 7           // chiều dài mỗi segment
-    private let gap: CGFloat = 5             // khoảng cách từ viền orb
+    private let segmentsPerRay = 3
+    private let cycleDuration: Double = 2.2  // chậm hơn
+    private let maxReach: CGFloat = 44
+    private let segLen: CGFloat = 8
+    private let gap: CGFloat = 6
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -251,9 +251,9 @@ struct SunRaysView: View {
                     let rayOffset = CGFloat(rayIndex) / CGFloat(rayCount)
 
                     for seg in 0..<segmentsPerRay {
-                        let segOffset = CGFloat(seg) / CGFloat(segmentsPerRay)
-                        // phase của segment này trong chu kỳ
-                        var p = (globalPhase + segOffset + rayOffset * 0.3).truncatingRemainder(dividingBy: 1.0)
+                        // spacing lớn hơn = khoảng cách giữa các segment xa hơn
+                        let segOffset = CGFloat(seg) * 0.38
+                        var p = (globalPhase + segOffset + rayOffset * 0.25).truncatingRemainder(dividingBy: 1.0)
 
                         // dist: từ 0→maxReach trong một chu kỳ
                         let dist = gap + p * maxReach
