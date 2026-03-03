@@ -107,14 +107,10 @@ struct SetupView: View {
             }
         }
         .sheet(isPresented: $showSTTSheet, onDismiss: { viewModel.reloadSettings() }) {
-            if let s = Binding($viewModel.settings) {
-                STTProviderSheet(settings: s)
-            }
+            STTProviderSheet { viewModel.reloadSettings() }
         }
         .sheet(isPresented: $showTTSSheet, onDismiss: { viewModel.reloadSettings() }) {
-            if let s = Binding($viewModel.settings) {
-                TTSProviderSheet(settings: s)
-            }
+            TTSProviderSheet { viewModel.reloadSettings() }
         }
     }
 

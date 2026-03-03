@@ -2,17 +2,11 @@ import SwiftUI
 
 // MARK: - STT Provider Sheet
 struct STTProviderSheet: View {
-    @Binding var settings: AppSettings
+    let onSave: () -> Void
     @Environment(\.dismiss) var dismiss
 
-    @State private var selectedProvider: STTProvider
-    @State private var configs: [String: ProviderConfig]
-
-    init(settings: Binding<AppSettings>) {
-        self._settings = settings
-        self._selectedProvider = State(initialValue: settings.wrappedValue.selectedSTTProvider)
-        self._configs = State(initialValue: settings.wrappedValue.sttConfigs)
-    }
+    @State private var selectedProvider: STTProvider = .deepgram
+    @State private var configs: [String: ProviderConfig] = [:]
 
     var body: some View {
         NavigationView {
@@ -40,7 +34,6 @@ struct STTProviderSheet: View {
                             }
                         }
 
-                        // Config for selected provider
                         providerFields(for: selectedProvider)
                     }
                     .padding(24)
@@ -54,11 +47,25 @@ struct STTProviderSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        settings.selectedSTTProvider = selectedProvider
-                        settings.sttConfigs = configs
-                        settings.save()
+                        var s = AppSettings.load() ?? defaultSettings()
+                        s.selectedSTTProvider = selectedProvider
+                        for (k, v) in configs { s.sttConfigs[k] = v }
+                        s.save()
+                        onSave()
                         dismiss()
                     }.foregroundColor(.purple)
+                }
+            }
+        }
+        .onAppear {
+            if let s = AppSettings.load() {
+                selectedProvider = s.selectedSTTProvider
+                configs = s.sttConfigs
+            }
+            // Set default model if missing
+            for p in STTProvider.allCases {
+                if configs[p.rawValue] == nil {
+                    configs[p.rawValue] = ProviderConfig(apiKey: "", model: p.defaultModel)
                 }
             }
         }
@@ -66,21 +73,25 @@ struct STTProviderSheet: View {
 
     @ViewBuilder
     private func providerFields(for provider: STTProvider) -> some View {
-        let binding = configBinding(for: provider.rawValue)
         VStack(alignment: .leading, spacing: 16) {
-            // API Key
             VStack(alignment: .leading, spacing: 6) {
                 Text("API Key").font(.caption).foregroundColor(.gray)
-                SecureField("Enter API key", text: binding.apiKey)
-                    .textFieldStyle(.plain)
-                    .foregroundColor(.white)
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                SecureField("Enter API key", text: Binding(
+                    get: { configs[provider.rawValue]?.apiKey ?? "" },
+                    set: { val in configs[provider.rawValue, default: ProviderConfig(apiKey: "", model: provider.defaultModel)].apiKey = val }
+                ))
+                .textFieldStyle(.plain)
+                .foregroundColor(.white)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
             }
-            // Model
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Model").font(.caption).foregroundColor(.gray)
-                Picker("Model", selection: binding.model) {
+                Picker("Model", selection: Binding(
+                    get: { configs[provider.rawValue]?.model ?? provider.defaultModel },
+                    set: { val in configs[provider.rawValue, default: ProviderConfig(apiKey: "", model: provider.defaultModel)].model = val }
+                )) {
                     ForEach(provider.availableModels, id: \.self) { m in
                         Text(m).tag(m)
                     }
@@ -88,37 +99,19 @@ struct STTProviderSheet: View {
                 .pickerStyle(.menu)
                 .accentColor(.purple)
                 .padding(8)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                .onAppear {
-                    if binding.model.wrappedValue.isEmpty {
-                        binding.model.wrappedValue = provider.defaultModel
-                    }
-                }
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
             }
         }
-    }
-
-    private func configBinding(for key: String) -> Binding<ProviderConfig> {
-        Binding(
-            get: { configs[key] ?? ProviderConfig(apiKey: "", model: "") },
-            set: { configs[key] = $0 }
-        )
     }
 }
 
 // MARK: - TTS Provider Sheet
 struct TTSProviderSheet: View {
-    @Binding var settings: AppSettings
+    let onSave: () -> Void
     @Environment(\.dismiss) var dismiss
 
-    @State private var selectedProvider: TTSProvider
-    @State private var configs: [String: ProviderConfig]
-
-    init(settings: Binding<AppSettings>) {
-        self._settings = settings
-        self._selectedProvider = State(initialValue: settings.wrappedValue.selectedTTSProvider)
-        self._configs = State(initialValue: settings.wrappedValue.ttsConfigs)
-    }
+    @State private var selectedProvider: TTSProvider = .openai
+    @State private var configs: [String: ProviderConfig] = [:]
 
     var body: some View {
         NavigationView {
@@ -144,6 +137,7 @@ struct TTSProviderSheet: View {
                                 }
                             }
                         }
+
                         providerFields(for: selectedProvider)
                     }
                     .padding(24)
@@ -157,11 +151,24 @@ struct TTSProviderSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        settings.selectedTTSProvider = selectedProvider
-                        settings.ttsConfigs = configs
-                        settings.save()
+                        var s = AppSettings.load() ?? defaultSettings()
+                        s.selectedTTSProvider = selectedProvider
+                        for (k, v) in configs { s.ttsConfigs[k] = v }
+                        s.save()
+                        onSave()
                         dismiss()
                     }.foregroundColor(.purple)
+                }
+            }
+        }
+        .onAppear {
+            if let s = AppSettings.load() {
+                selectedProvider = s.selectedTTSProvider
+                configs = s.ttsConfigs
+            }
+            for p in TTSProvider.allCases {
+                if configs[p.rawValue] == nil {
+                    configs[p.rawValue] = ProviderConfig(apiKey: "", model: p.defaultModel)
                 }
             }
         }
@@ -169,19 +176,25 @@ struct TTSProviderSheet: View {
 
     @ViewBuilder
     private func providerFields(for provider: TTSProvider) -> some View {
-        let binding = configBinding(for: provider.rawValue)
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("API Key").font(.caption).foregroundColor(.gray)
-                SecureField("Enter API key", text: binding.apiKey)
-                    .textFieldStyle(.plain)
-                    .foregroundColor(.white)
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                SecureField("Enter API key", text: Binding(
+                    get: { configs[provider.rawValue]?.apiKey ?? "" },
+                    set: { val in configs[provider.rawValue, default: ProviderConfig(apiKey: "", model: provider.defaultModel)].apiKey = val }
+                ))
+                .textFieldStyle(.plain)
+                .foregroundColor(.white)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
             }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Model").font(.caption).foregroundColor(.gray)
-                Picker("Model", selection: binding.model) {
+                Picker("Model", selection: Binding(
+                    get: { configs[provider.rawValue]?.model ?? provider.defaultModel },
+                    set: { val in configs[provider.rawValue, default: ProviderConfig(apiKey: "", model: provider.defaultModel)].model = val }
+                )) {
                     ForEach(provider.availableModels, id: \.self) { m in
                         Text(m).tag(m)
                     }
@@ -189,20 +202,17 @@ struct TTSProviderSheet: View {
                 .pickerStyle(.menu)
                 .accentColor(.purple)
                 .padding(8)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                .onAppear {
-                    if binding.model.wrappedValue.isEmpty {
-                        binding.model.wrappedValue = provider.defaultModel
-                    }
-                }
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
             }
         }
     }
+}
 
-    private func configBinding(for key: String) -> Binding<ProviderConfig> {
-        Binding(
-            get: { configs[key] ?? ProviderConfig(apiKey: "", model: "") },
-            set: { configs[key] = $0 }
-        )
-    }
+private func defaultSettings() -> AppSettings {
+    AppSettings(
+        gatewayURL: "", gatewayToken: "",
+        selectedVoiceID: "", selectedVoiceName: "",
+        sttLanguage: "vi", wakeWord: "hey kuromi",
+        wakeWordSamples: [], ttsVoice: "nova"
+    )
 }
