@@ -59,7 +59,7 @@ struct SetupView: View {
                         text: $viewModel.openAIKey,
                         icon: "speaker.wave.2.fill",
                         isSecure: true,
-                        validation: .none
+                        validation: viewModel.openAIValidation
                     )
                 }
                 .padding(.horizontal, 24)
