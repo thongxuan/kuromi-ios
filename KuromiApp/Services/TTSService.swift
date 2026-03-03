@@ -129,6 +129,8 @@ class TTSService: NSObject, ObservableObject {
                 self.audioPlayer?.delegate = self
                 self.audioPlayer?.volume = 1.0
                 self.audioPlayer?.prepareToPlay()
+                // Ensure loud speaker active khi play
+                try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
                 let success = self.audioPlayer?.play() ?? false
                 print("TTS play: \(success), duration: \(self.audioPlayer?.duration ?? 0)s")
                 self.isPlaying = true
