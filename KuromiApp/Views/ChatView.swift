@@ -258,8 +258,10 @@ struct SunRaysView: View {
                         // dist: từ 0→maxReach trong một chu kỳ
                         let dist = gap + p * maxReach
 
-                        // opacity: cao gần orb, fade dần khi ra xa
-                        let opacity = Double(1.0 - p) * 0.85
+                        // fade in 0→0.25, full 0.25→0.5, fade out 0.5→1.0
+                        let fadeIn: Double = min(Double(p) / 0.25, 1.0)
+                        let fadeOut: Double = max(1.0 - (Double(p) - 0.5) / 0.5, 0.0)
+                        let opacity = fadeIn * fadeOut * 0.9
 
                         let sx = center.x + cosA * (orbRadius + dist)
                         let sy = center.y + sinA * (orbRadius + dist)
