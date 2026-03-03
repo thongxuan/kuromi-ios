@@ -50,19 +50,24 @@ class AudioService: NSObject, ObservableObject {
         guard let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let changeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
 
-        switch changeReason {
-        case .newDeviceAvailable:
-            switchToBluetooth()
-        case .oldDeviceUnavailable:
-            switchToSpeaker()
-        default:
-            break
-        }
-        updateBluetoothState()
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            switch changeReason {
+            case .newDeviceAvailable:
+                self.switchToBluetooth()
+            case .oldDeviceUnavailable:
+                self.switchToSpeaker()
+            default:
+                break
+            }
+            self.updateBluetoothState()
 
-        // Nếu đang recording thì restart engine với format mới
-        if isRecording {
-            restartRecording()
+            // Restart recording sau khi switch (delay để tránh conflict)
+            if self.isRecording {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.restartRecording()
+                }
+            }
         }
     }
 
@@ -110,7 +115,6 @@ class AudioService: NSObject, ObservableObject {
             try? session.setPreferredInput(btInput)
             print("Audio input: \(btInput.portName)")
         }
-        restartEngineIfNeeded()
     }
 
     private func switchToSpeaker() {
@@ -118,14 +122,7 @@ class AudioService: NSObject, ObservableObject {
         try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
         try? session.setPreferredInput(nil)
-        restartEngineIfNeeded()
         print("Audio route: switched to Speaker")
-    }
-
-    private func restartEngineIfNeeded() {
-        guard audioEngine.isRunning else { return }
-        audioEngine.stop()
-        try? audioEngine.start()
     }
 
     private func updateBluetoothState() {

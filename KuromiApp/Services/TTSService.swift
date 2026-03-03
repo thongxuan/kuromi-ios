@@ -72,6 +72,7 @@ class TTSService: NSObject, ObservableObject {
 
         // Dùng OpenAI TTS thay ElevenLabs
         let ttsKey = openAIKey.isEmpty ? apiKey : openAIKey
+        print("TTS speak: openAIKey=\(openAIKey.prefix(8))... ttsKey=\(ttsKey.prefix(8))...")
         guard let url = URL(string: "https://api.openai.com/v1/audio/speech") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
