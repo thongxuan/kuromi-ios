@@ -21,6 +21,7 @@
 		AA000011 /* GatewayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* GatewayService.swift */; };
 		AA000012 /* DeepgramService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* DeepgramService.swift */; };
 		AA000013 /* ElevenLabsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013 /* ElevenLabsService.swift */; };
+		AA000015 /* OpenAITTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* OpenAITTSService.swift */; };
 		AA000014 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* WakeWordService.swift */; };
 		AA000015 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* AudioService.swift */; };
 		AA000016 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* KeychainHelper.swift */; };
@@ -42,6 +43,7 @@
 		AA100011 /* GatewayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayService.swift; sourceTree = "<group>"; };
 		AA100012 /* DeepgramService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramService.swift; sourceTree = "<group>"; };
 		AA100013 /* ElevenLabsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsService.swift; sourceTree = "<group>"; };
+		AA100015 /* OpenAITTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITTSService.swift; sourceTree = "<group>"; };
 		AA100014 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
 		AA100015 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
 		AA100016 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 				AA100011 /* GatewayService.swift */,
 				AA100012 /* DeepgramService.swift */,
 				AA100013 /* ElevenLabsService.swift */,
+				AA100015 /* OpenAITTSService.swift */,
 				AA100014 /* WakeWordService.swift */,
 				AA100015 /* AudioService.swift */,
 			);
@@ -225,6 +228,7 @@
 				AA000011 /* GatewayService.swift in Sources */,
 				AA000012 /* DeepgramService.swift in Sources */,
 				AA000013 /* ElevenLabsService.swift in Sources */,
+				AA000015 /* OpenAITTSService.swift in Sources */,
 				AA000014 /* WakeWordService.swift in Sources */,
 				AA000015 /* AudioService.swift in Sources */,
 				AA000016 /* KeychainHelper.swift in Sources */,
