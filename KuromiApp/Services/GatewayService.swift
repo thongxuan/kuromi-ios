@@ -128,10 +128,6 @@ class GatewayService: NSObject, ObservableObject {
                 guard let payload = json["payload"] as? [String: Any],
                       let stream = payload["stream"] as? String else { return }
 
-                // Chỉ xử lý event của đúng session này
-                if let payloadSession = payload["sessionKey"] as? String,
-                   payloadSession != sessionKey { return }
-
                 if stream == "assistant",
                    let data = payload["data"] as? [String: Any] {
                     if let delta = data["delta"] as? String, !delta.isEmpty {
