@@ -29,7 +29,7 @@ class AudioService: NSObject, ObservableObject {
     private func setupAudioSession() {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
         } catch {
             print("AudioSession setup error: \(error)")
@@ -106,7 +106,7 @@ class AudioService: NSObject, ObservableObject {
 
     private func switchToBluetooth() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
         // Set Bluetooth HFP as preferred input (mic)
         if let btInput = session.availableInputs?.first(where: {
@@ -119,7 +119,7 @@ class AudioService: NSObject, ObservableObject {
 
     private func switchToSpeaker() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
         try? session.setPreferredInput(nil)
         print("Audio route: switched to Speaker")

@@ -74,7 +74,7 @@ class OpenAITTSService: NSObject, ObservableObject {
         DispatchQueue.main.async {
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playAndRecord, mode: .voiceChat,
+                try session.setCategory(.playAndRecord, mode: .default,
                                         options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
                 try session.setActive(true)
                 self.audioPlayer = try AVAudioPlayer(contentsOf: tempURL)

@@ -169,7 +169,7 @@ class ChatViewModel: ObservableObject {
         isLoudSpeaker.toggle()
         UserDefaults.standard.set(isLoudSpeaker, forKey: "kuromi_loud_speaker")
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
         try? session.setActive(true)
         try? session.overrideOutputAudioPort(isLoudSpeaker ? .speaker : .none)
     }
@@ -178,7 +178,7 @@ class ChatViewModel: ObservableObject {
         do {
             let session = AVAudioSession.sharedInstance()
             let options: AVAudioSession.CategoryOptions = [.allowBluetooth, .allowBluetoothA2DP]
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
+            try session.setCategory(.playAndRecord, mode: .default, options: options)
             try session.setActive(true)
             // Force loud speaker nếu cần
             if isLoudSpeaker {

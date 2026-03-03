@@ -122,7 +122,7 @@ class TTSService: NSObject, ObservableObject {
             do {
                 // Giữ .playAndRecord — coexist với engine mic
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playAndRecord, mode: .voiceChat,
+                try session.setCategory(.playAndRecord, mode: .default,
                                         options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
                 try session.setActive(true)
                 self.audioPlayer = try AVAudioPlayer(contentsOf: tempURL)
