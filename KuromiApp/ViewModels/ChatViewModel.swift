@@ -113,10 +113,15 @@ class ChatViewModel: ObservableObject {
             }
         }
 
-        // ElevenLabs playback finished
+        // ElevenLabs playback finished → tự động nghe lại
         elevenLabsService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.async {
-                self?.chatState = .idle
+                guard let self = self else { return }
+                if self.isToggleEnabled {
+                    self.startUserSpeaking()
+                } else {
+                    self.chatState = .idle
+                }
             }
         }
 

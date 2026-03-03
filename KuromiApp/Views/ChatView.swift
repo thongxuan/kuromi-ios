@@ -153,88 +153,71 @@ struct OrbView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var glowRadius: CGFloat = 0
 
-    private var baseSize: CGFloat {
-        switch chatState {
-        case .userSpeaking: return 140
-        case .aiSpeaking: return 120
-        default: return 90
-        }
-    }
+    // Fixed container size — circle scale từ center, không nhảy vị trí
+    private let containerSize: CGFloat = 160
 
-    private var dynamicScale: CGFloat {
+    private var circleScale: CGFloat {
         switch chatState {
-        case .userSpeaking:
-            return 1.0 + CGFloat(inputLevel) * 0.5
-        case .aiSpeaking:
-            return pulseScale
-        default:
-            return 1.0
+        case .idle, .connecting, .error: return 0.55
+        case .userSpeaking: return 0.75 + CGFloat(inputLevel) * 0.35
+        case .aiSpeaking: return 0.65 * pulseScale
         }
     }
 
     private var orbColor: Color {
         switch chatState {
-        case .idle: return Color.white.opacity(0.12)
+        case .idle: return Color.white.opacity(0.15)
         case .userSpeaking: return Color.purple.opacity(0.85)
-        case .aiSpeaking: return Color.purple.opacity(0.45)
-        case .connecting: return Color.white.opacity(0.06)
-        case .error: return Color.red.opacity(0.3)
+        case .aiSpeaking: return Color.purple.opacity(0.5)
+        case .connecting: return Color.white.opacity(0.07)
+        case .error: return Color.red.opacity(0.4)
         }
     }
 
     private var glowColor: Color {
         switch chatState {
         case .userSpeaking: return .purple
-        case .aiSpeaking: return Color.purple.opacity(0.6)
+        case .aiSpeaking: return Color.purple.opacity(0.5)
         default: return .clear
         }
     }
 
     var body: some View {
         ZStack {
-            // Glow rings
-            if case .userSpeaking = chatState {
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(Color.purple.opacity(0.06 - Double(i) * 0.015))
-                        .frame(width: baseSize * dynamicScale + CGFloat(i * 30),
-                               height: baseSize * dynamicScale + CGFloat(i * 30))
-                }
-            }
-            if case .aiSpeaking = chatState {
-                ForEach(0..<2, id: \.self) { i in
-                    Circle()
-                        .fill(Color.purple.opacity(0.05 - Double(i) * 0.01))
-                        .frame(width: baseSize * pulseScale + CGFloat(i * 24),
-                               height: baseSize * pulseScale + CGFloat(i * 24))
-                }
+            // Glow rings — cũng fixed center trong container
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .fill(glowColor.opacity(max(0, 0.06 - Double(i) * 0.018)))
+                    .frame(width: containerSize * circleScale + CGFloat(i * 28),
+                           height: containerSize * circleScale + CGFloat(i * 28))
+                    .opacity(chatState == .idle || chatState == .connecting ? 0 : 1)
             }
 
             // Main orb
             Circle()
                 .fill(
                     RadialGradient(
-                        gradient: Gradient(colors: [orbColor.opacity(1.2), orbColor.opacity(0.6)]),
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: baseSize / 2
+                        gradient: Gradient(colors: [orbColor, orbColor.opacity(0.5)]),
+                        center: .center, startRadius: 0,
+                        endRadius: containerSize * circleScale / 2
                     )
                 )
-                .frame(width: baseSize * dynamicScale, height: baseSize * dynamicScale)
+                .frame(width: containerSize * circleScale, height: containerSize * circleScale)
                 .shadow(color: glowColor, radius: glowRadius)
                 .overlay(
                     Circle()
                         .strokeBorder(glowColor.opacity(0.4), lineWidth: 1.5)
-                        .frame(width: baseSize * dynamicScale, height: baseSize * dynamicScale)
                 )
+                .scaleEffect(circleScale / circleScale) // keep in place
 
-            // Inner icon
+            // Icon
             Image(systemName: orbIcon)
-                .font(.system(size: 28, weight: .light))
-                .foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 26, weight: .light))
+                .foregroundColor(.white.opacity(0.65))
         }
-        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: dynamicScale)
-        .animation(.easeInOut(duration: 0.5), value: orbColor)
+        .frame(width: containerSize, height: containerSize) // fixed frame
+        .animation(.spring(response: 0.3, dampingFraction: 0.65), value: circleScale)
+        .animation(.easeInOut(duration: 0.4), value: orbColor)
         .onAppear { startAIPulse() }
         .onChange(of: chatState) { _, _ in startAIPulse() }
     }
