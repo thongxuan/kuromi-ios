@@ -15,10 +15,6 @@ struct ChatView: View {
 
                 Spacer()
 
-                // Status label
-                statusLabel
-                    .padding(.bottom, 16)
-
                 // Transcript list
                 TranscriptListView(
                     messages: viewModel.messages,
@@ -50,6 +46,10 @@ struct ChatView: View {
 
                 // Orb button (gộp orb + toggle)
                 orbButton
+
+                // Status label dưới orb
+                statusLabel
+                    .padding(.top, 8)
                     .padding(.bottom, 56)
             }
         }
