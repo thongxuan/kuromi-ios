@@ -219,6 +219,9 @@ class ChatViewModel: ObservableObject {
                 if isFinal && !text.isEmpty {
                     self.accumulatedText += (self.accumulatedText.isEmpty ? "" : " ") + text
                     self.currentTranscript = self.accumulatedText
+                    // Auto-stop mic when utterance is final — relay server handles sending to gateway
+                    self.relayService?.stopMic()
+                    self.chatState = .idle
                 } else if !isFinal {
                     self.currentTranscript = self.accumulatedText + (self.accumulatedText.isEmpty ? "" : " ") + text
                 }
