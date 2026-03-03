@@ -229,7 +229,7 @@ struct SunRaysView: View {
 
     private let rayCount = 12
     private let segmentsPerRay = 3
-    private let cycleDuration: Double = 2.2  // chậm hơn
+    private let cycleDuration: Double = 3.5  // chậm hơn nữa
     private let maxReach: CGFloat = 44
     private let segLen: CGFloat = 8
     private let gap: CGFloat = 6
@@ -258,9 +258,9 @@ struct SunRaysView: View {
                         // dist: từ 0→maxReach trong một chu kỳ
                         let dist = gap + p * maxReach
 
-                        // fade in 0→0.25, full 0.25→0.5, fade out 0.5→1.0
-                        let fadeIn: Double = min(Double(p) / 0.25, 1.0)
-                        let fadeOut: Double = max(1.0 - (Double(p) - 0.5) / 0.5, 0.0)
+                        // fade in 0→0.15, fade out 0.15→1.0 (fade out nhanh)
+                        let fadeIn: Double = min(Double(p) / 0.15, 1.0)
+                        let fadeOut: Double = max(1.0 - (Double(p) - 0.15) / 0.85, 0.0)
                         let opacity = fadeIn * fadeOut * 0.9
 
                         let sx = center.x + cosA * (orbRadius + dist)
