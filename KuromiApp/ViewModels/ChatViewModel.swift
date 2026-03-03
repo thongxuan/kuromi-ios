@@ -116,7 +116,6 @@ class ChatViewModel: ObservableObject {
         // ElevenLabs playback finished
         elevenLabsService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.async {
-                self?.audioService.stopMonitoring()
                 self?.chatState = .idle
             }
         }
@@ -127,12 +126,7 @@ class ChatViewModel: ObservableObject {
             .sink { [weak self] level in
                 guard let self = self else { return }
                 self.inputLevel = level
-                // Nếu AI đang nói mà mic level vượt threshold → anh đang nói → ngắt AI
-                if case .aiSpeaking = self.chatState, level > 0.02 {
-                    self.audioService.stopMonitoring()
-                    self.elevenLabsService?.stopSpeaking()
-                    self.startUserSpeaking()
-                }
+
             }
             .store(in: &cancellables)
 
@@ -261,7 +255,6 @@ class ChatViewModel: ObservableObject {
         let msg = Message(role: .assistant, text: text)
         messages.append(msg)
         chatState = .aiSpeaking
-        audioService.startMonitoring() // monitor mic để detect anh nói vào
         let voiceID = settings.selectedVoiceID.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : settings.selectedVoiceID
         elevenLabsService?.speak(text: text, voiceID: voiceID, language: settings.sttLanguage)
     }

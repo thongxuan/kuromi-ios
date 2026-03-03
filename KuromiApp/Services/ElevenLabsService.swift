@@ -101,18 +101,27 @@ class ElevenLabsService: NSObject, ObservableObject {
     }
 
     private func playAudioData(_ data: Data) {
+        // Write to temp file để AVAudioPlayer đọc ổn định hơn
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("kuromi_tts_\(UUID().uuidString).mp3")
+        do {
+            try data.write(to: tempURL)
+        } catch {
+            print("Failed to write temp audio: \(error)")
+            DispatchQueue.main.async { self.isPlaying = false }
+            return
+        }
+
         DispatchQueue.main.async {
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playAndRecord, mode: .voiceChat,
-                                        options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
-                try session.setActive(true)
-                self.audioPlayer = try AVAudioPlayer(data: data)
+                try session.setCategory(.playback, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
+                try session.setActive(true, options: .notifyOthersOnDeactivation)
+                self.audioPlayer = try AVAudioPlayer(contentsOf: tempURL)
                 self.audioPlayer?.delegate = self
                 self.audioPlayer?.volume = 1.0
                 self.audioPlayer?.prepareToPlay()
                 let success = self.audioPlayer?.play() ?? false
-                print("AVAudioPlayer play: \(success), duration: \(self.audioPlayer?.duration ?? 0)s")
+                print("TTS play: \(success), duration: \(self.audioPlayer?.duration ?? 0)s")
                 self.isPlaying = true
             } catch {
                 print("AVAudioPlayer error: \(error)")
@@ -143,6 +152,10 @@ class ElevenLabsService: NSObject, ObservableObject {
 
 extension ElevenLabsService: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        // Switch session về playAndRecord cho mic
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+        try? session.setActive(true)
         DispatchQueue.main.async {
             self.isPlaying = false
             self.onPlaybackFinished?()
