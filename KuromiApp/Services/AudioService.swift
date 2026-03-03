@@ -204,7 +204,6 @@ class AudioService: NSObject, ObservableObject {
 
     func stopRecording() {
         inputNode.removeTap(onBus: 0)
-        if engine.isRunning { engine.stop() }
         DispatchQueue.main.async {
             self.isRecording = false
             self.inputLevel = 0

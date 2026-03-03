@@ -22,7 +22,9 @@ class OpenAITTSService: NSObject, ObservableObject {
     // MARK: - TTS
 
     func speak(text: String, voice: String = defaultVoice) {
-        guard !text.isEmpty, !apiKey.isEmpty else { return }
+        print("OpenAI TTS speak: apiKey=\(apiKey.prefix(8))... voice=\(voice) text=\(text.prefix(30))")
+        guard !text.isEmpty else { print("TTS skipped: text empty"); return }
+        guard !apiKey.isEmpty else { print("TTS skipped: apiKey empty"); return }
         stopSpeaking()
         DispatchQueue.main.async { self.isPlaying = true }
 
@@ -69,7 +71,7 @@ class OpenAITTSService: NSObject, ObservableObject {
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        DispatchQueue.main.async {
             do {
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.playAndRecord, mode: .voiceChat,
