@@ -73,6 +73,14 @@ struct ChatView: View {
 
             Spacer()
 
+            // Speaker toggle
+            Button(action: { viewModel.toggleSpeaker() }) {
+                Image(systemName: viewModel.isLoudSpeaker ? "speaker.wave.3.fill" : "speaker.fill")
+                    .font(.body)
+                    .foregroundColor(viewModel.isLoudSpeaker ? .purple : .gray)
+            }
+            .padding(.trailing, 16)
+
             Button(action: { appState.openSetupEdit() }) {
                 Image(systemName: "gearshape")
                     .font(.body)

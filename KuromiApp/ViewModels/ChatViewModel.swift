@@ -33,6 +33,7 @@ class ChatViewModel: ObservableObject {
     private var transcriptStableCount: Int = 0
     private var accumulatedText: String = ""
     @Published var showReconnectButton: Bool = false
+    @Published var isLoudSpeaker: Bool = true
 
     init() {
         settings = AppSettings.load()!
@@ -162,6 +163,16 @@ class ChatViewModel: ObservableObject {
         setupAudioSession()
         connectWithTimeout(to: settings.gatewayURL)
         setupWakeWordListening()
+    }
+
+    func toggleSpeaker() {
+        isLoudSpeaker.toggle()
+        let session = AVAudioSession.sharedInstance()
+        let options: AVAudioSession.CategoryOptions = isLoudSpeaker
+            ? [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
+            : [.allowBluetooth, .allowBluetoothA2DP]
+        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
+        try? session.setActive(true)
     }
 
     private func setupAudioSession() {
