@@ -82,7 +82,7 @@ class TTSService: NSObject, ObservableObject {
         // voiceID ở đây là OpenAI voice name (nova, shimmer, etc.)
         let openAIVoice = voiceID.isEmpty ? "nova" : voiceID
         let body: [String: Any] = [
-            "model": "gpt-4o-mini-tts",
+            "model": "tts-1",
             "voice": openAIVoice,
             "input": text,
             "response_format": "mp3"
