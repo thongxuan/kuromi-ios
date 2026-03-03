@@ -16,9 +16,16 @@ enum VoiceAge: String, CaseIterable {
 enum VoiceTone: String, CaseIterable {
     case high = "high"; case low = "low"
     var label: String { self == .high ? "Cao ↑" : "Trầm ↓" }
-    var stability: Double { self == .high ? 0.3 : 0.75 }
-    var highDescriptives: [String] { ["sassy","hyped","energetic","young","quirky"] }
-    var lowDescriptives: [String] { ["classy","mature","professional","deep","resonant","warm"] }
+}
+
+// OpenAI voices với labels để filter
+struct OpenAIVoiceOption {
+    let id: String           // tên voice: nova, shimmer...
+    let name: String
+    let gender: VoiceGender
+    let age: VoiceAge
+    let tone: VoiceTone
+    let descriptives: [String]
 }
 
 class VoiceSetupViewModel: ObservableObject {
@@ -30,11 +37,9 @@ class VoiceSetupViewModel: ObservableObject {
     @Published var selectedLanguage: STTLanguage = STTLanguage.popular[0]
 
     // Matched voices
-    @Published var matchedVoices: [VoiceOption] = []
-    @Published var selectedVoiceID: String = ""
-    @Published var selectedVoiceName: String = ""
-    @Published var isLoadingVoices: Bool = false
-    @Published var voiceLoadError: String = ""
+    @Published var matchedVoices: [OpenAIVoiceOption] = []
+    @Published var selectedVoiceID: String = "nova"
+    @Published var selectedVoiceName: String = "Nova"
 
     @Published var wakeWord: String = "hey kuromi"
     @Published var trainingSamples: [String] = []
@@ -42,15 +47,27 @@ class VoiceSetupViewModel: ObservableObject {
     @Published var isRecordingTraining: Bool = false
     @Published var trainingError: String = ""
 
-    private var allVoices: [VoiceOption] = []
-    private var elevenLabsService: ElevenLabsService?
+    private var openAITTSService: OpenAITTSService?
     private let wakeWordService = WakeWordService()
     private var cancellables = Set<AnyCancellable>()
 
+    // Danh sách 9 voices OpenAI với labels
+    static let allVoices: [OpenAIVoiceOption] = [
+        OpenAIVoiceOption(id: "nova",    name: "Nova",    gender: .female, age: .young,      tone: .high, descriptives: ["warm","energetic","friendly","natural"]),
+        OpenAIVoiceOption(id: "coral",   name: "Coral",   gender: .female, age: .young,      tone: .high, descriptives: ["expressive","bright","cheerful","dynamic"]),
+        OpenAIVoiceOption(id: "shimmer", name: "Shimmer", gender: .female, age: .middleAged, tone: .low,  descriptives: ["calm","warm","soothing","gentle"]),
+        OpenAIVoiceOption(id: "alloy",   name: "Alloy",   gender: .female, age: .young,      tone: .low,  descriptives: ["neutral","professional","clear","balanced"]),
+        OpenAIVoiceOption(id: "echo",    name: "Echo",    gender: .male,   age: .young,      tone: .high, descriptives: ["warm","resonant","engaging","natural"]),
+        OpenAIVoiceOption(id: "fable",   name: "Fable",   gender: .male,   age: .young,      tone: .high, descriptives: ["expressive","dynamic","storytelling","vibrant"]),
+        OpenAIVoiceOption(id: "ash",     name: "Ash",     gender: .male,   age: .young,      tone: .low,  descriptives: ["confident","clear","neutral","direct"]),
+        OpenAIVoiceOption(id: "onyx",    name: "Onyx",    gender: .male,   age: .middleAged, tone: .low,  descriptives: ["deep","professional","authoritative","resonant"]),
+        OpenAIVoiceOption(id: "sage",    name: "Sage",    gender: .male,   age: .middleAged, tone: .low,  descriptives: ["calm","professional","measured","wise"]),
+    ]
+
     init() {
         if let settings = AppSettings.load() {
-            selectedVoiceID = settings.selectedVoiceID
-            selectedVoiceName = settings.selectedVoiceName
+            selectedVoiceID = settings.ttsVoice.isEmpty ? "nova" : settings.ttsVoice
+            selectedVoiceName = Self.allVoices.first { $0.id == selectedVoiceID }?.name ?? "Nova"
             wakeWord = settings.wakeWord.isEmpty ? "hey kuromi" : settings.wakeWord
             selectedLanguage = STTLanguage.from(code: settings.sttLanguage)
         }
@@ -64,90 +81,54 @@ class VoiceSetupViewModel: ObservableObject {
             }
         }
 
-        // Auto-filter when any input changes
         Publishers.CombineLatest4($filterGender, $filterAge, $filterTone, $filterDescription)
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.applyFilters() }
             .store(in: &cancellables)
+
+        applyFilters()
     }
 
-    func setupElevenLabs(apiKey: String) {
-        elevenLabsService = ElevenLabsService(apiKey: apiKey)
-        loadVoices()
-    }
-
-    func loadVoices() {
-        guard let service = elevenLabsService else { return }
-        isLoadingVoices = true
-        voiceLoadError = ""
-        Task {
-            do {
-                let voiceList = try await service.fetchVoices()
-                DispatchQueue.main.async {
-                    self.allVoices = voiceList
-                    self.isLoadingVoices = false
-                    self.applyFilters()
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.voiceLoadError = error.localizedDescription
-                    self.isLoadingVoices = false
-                }
-            }
-        }
+    func setupOpenAI(apiKey: String) {
+        openAITTSService = OpenAITTSService(apiKey: apiKey)
     }
 
     func applyFilters() {
         let desc = filterDescription.lowercased().trimmingCharacters(in: .whitespaces)
 
-        var scored: [(VoiceOption, Int)] = allVoices.map { voice in
-            let labels = voice.labels ?? [:]
+        var scored: [(OpenAIVoiceOption, Int)] = Self.allVoices.map { voice in
             var score = 0
-
-            // Gender match (+3)
-            if labels["gender"] == filterGender.rawValue { score += 3 }
-
-            // Age match (+3)
-            if labels["age"] == filterAge.rawValue { score += 3 }
-
-            // Tone match (+2)
-            let descriptive = (labels["descriptive"] ?? "").lowercased()
-            let tonWords = filterTone == .high ? filterTone.highDescriptives : filterTone.lowDescriptives
-            if tonWords.contains(where: { descriptive.contains($0) }) { score += 2 }
-
-            // Description text match (+2 per keyword)
+            if voice.gender == filterGender { score += 3 }
+            if voice.age == filterAge { score += 3 }
+            if voice.tone == filterTone { score += 2 }
             if !desc.isEmpty {
                 let keywords = desc.split(separator: " ").map(String.init)
                 for kw in keywords {
-                    if voice.name.lowercased().contains(kw) ||
-                       descriptive.contains(kw) ||
-                       (labels["accent"] ?? "").contains(kw) ||
-                       (labels["use_case"] ?? "").contains(kw) { score += 2 }
+                    if voice.descriptives.contains(where: { $0.contains(kw) }) ||
+                       voice.name.lowercased().contains(kw) { score += 2 }
                 }
             }
-
             return (voice, score)
         }
 
         scored.sort { $0.1 > $1.1 }
         matchedVoices = scored.prefix(5).map { $0.0 }
 
-        // Auto-select top match if nothing selected yet or current not in list
         if !matchedVoices.isEmpty {
-            let ids = matchedVoices.map { $0.voice_id }
+            let ids = matchedVoices.map { $0.id }
             if selectedVoiceID.isEmpty || !ids.contains(selectedVoiceID) {
                 selectVoice(matchedVoices[0])
             }
         }
     }
 
-    func selectVoice(_ voice: VoiceOption) {
-        selectedVoiceID = voice.voice_id
+    func selectVoice(_ voice: OpenAIVoiceOption) {
+        selectedVoiceID = voice.id
         selectedVoiceName = voice.name
     }
 
-    func previewVoice(_ voice: VoiceOption) {
-        elevenLabsService?.previewVoice(voice)
+    func previewVoice(_ voice: OpenAIVoiceOption) {
+        openAITTSService?.speak(text: "Xin chào, em là \(voice.name), giọng đọc OpenAI!", voice: voice.id)
     }
 
     // MARK: - Wake Word Training
@@ -174,16 +155,10 @@ class VoiceSetupViewModel: ObservableObject {
 
     func save() {
         guard var settings = AppSettings.load() else { return }
-        settings.selectedVoiceID = selectedVoiceID
+        settings.ttsVoice = selectedVoiceID
         settings.selectedVoiceName = selectedVoiceName
         settings.sttLanguage = selectedLanguage.code
-        settings.wakeWord = computeFinalWakeWord()
+        settings.wakeWord = wakeWord
         settings.save()
-    }
-
-    private func computeFinalWakeWord() -> String {
-        guard !trainingSamples.isEmpty else { return wakeWord }
-        // Use the most common/similar sample or just the first one
-        return trainingSamples.first ?? wakeWord
     }
 }

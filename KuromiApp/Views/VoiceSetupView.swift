@@ -63,10 +63,8 @@ struct VoiceSetupView: View {
             }
         }
         .onAppear {
-            if let settings = AppSettings.load(), !settings.elevenLabsAPIKey.isEmpty {
-                viewModel.setupElevenLabs(apiKey: settings.elevenLabsAPIKey)
-            } else {
-                viewModel.voiceLoadError = "ElevenLabs API key not set. Please go back and enter it."
+            if let settings = AppSettings.load() {
+                viewModel.setupOpenAI(apiKey: settings.openAIKey)
             }
         }
     }
@@ -238,15 +236,7 @@ struct VoiceSetupView: View {
                     .foregroundColor(.gray)
             }
 
-            if viewModel.isLoadingVoices {
-                HStack { Spacer(); ProgressView().tint(.purple); Spacer() }
-                    .padding(.vertical, 20)
-            } else if !viewModel.voiceLoadError.isEmpty {
-                VStack(spacing: 8) {
-                    Text(viewModel.voiceLoadError).font(.caption).foregroundColor(.red).multilineTextAlignment(.center)
-                    Button("Retry") { viewModel.loadVoices() }.foregroundColor(.purple)
-                }.frame(maxWidth: .infinity)
-            } else {
+            do {
                 // Filter controls
                 VStack(spacing: 14) {
                     // Gender
@@ -317,10 +307,10 @@ struct VoiceSetupView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
 
-                        ForEach(viewModel.matchedVoices) { voice in
+                        ForEach(viewModel.matchedVoices, id: \.id) { voice in
                             VoiceRowView(
                                 voice: voice,
-                                isSelected: viewModel.selectedVoiceID == voice.voice_id,
+                                isSelected: viewModel.selectedVoiceID == voice.id,
                                 onSelect: { viewModel.selectVoice(voice) },
                                 onPreview: { viewModel.previewVoice(voice) }
                             )
@@ -417,7 +407,7 @@ struct TrainingStepView: View {
 }
 
 struct VoiceRowView: View {
-    let voice: VoiceOption
+    let voice: OpenAIVoiceOption
     let isSelected: Bool
     let onSelect: () -> Void
     let onPreview: () -> Void
@@ -440,11 +430,9 @@ struct VoiceRowView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
-                        if !voice.categoryLabel.isEmpty {
-                            Text(voice.categoryLabel)
-                                .font(.caption2)
-                                .foregroundColor(.gray)
-                        }
+                        Text(voice.descriptives.prefix(2).joined(separator: " · "))
+                            .font(.caption2)
+                            .foregroundColor(.gray)
                     }
                     Spacer()
                 }
