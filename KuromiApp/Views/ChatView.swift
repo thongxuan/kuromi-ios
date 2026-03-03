@@ -41,7 +41,7 @@ struct ChatView: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
                     }
                     .padding(.bottom, 12)
-                    .transition(.opacity)
+
                 }
 
                 // Orb button (gộp orb + toggle)
@@ -137,7 +137,7 @@ struct ChatView: View {
             .multilineTextAlignment(.center)
             .lineLimit(2)
             .padding(.horizontal, 32)
-            .animation(.easeInOut(duration: 0.2), value: label)
+    
     }
 
     // MARK: - Orb Button
@@ -325,9 +325,7 @@ struct TranscriptListView: View {
                             Text(currentTranscript)
                                 .foregroundColor(.white.opacity(0.9))
                             Text("▌")
-                                .foregroundColor(.purple)
-                                .opacity(1.0)
-                                .animation(.easeInOut(duration: 0.5).repeatForever(), value: currentTranscript)
+                                .foregroundColor(.purple.opacity(0.7))
                         }
                         .font(.subheadline)
                         .padding(.horizontal, 12)
@@ -347,7 +345,7 @@ struct TranscriptListView: View {
                 }
             }
             .onChange(of: currentTranscript) { _, _ in
-                withAnimation { proxy.scrollTo("live", anchor: .bottom) }
+                proxy.scrollTo("live", anchor: .bottom)
             }
         }
     }
