@@ -22,7 +22,10 @@ class ChatViewModel: ObservableObject {
     private var gatewayService = GatewayService()
     private var deepgramService: STTService?
     private var ttsService: TTSService?
+    private var relayService: AudioRelayService?
     private var wakeWordService = WakeWordService()
+
+    var isRelayMode: Bool { relayService != nil }
 
     private var settings: AppSettings
     private var cancellables = Set<AnyCancellable>()
@@ -41,6 +44,14 @@ class ChatViewModel: ObservableObject {
     }
 
     private func setupServices() {
+        // Relay mode: server-side STT + TTS
+        relayService = AudioRelayService()
+        setupRelayCallbacks()
+        relayService?.connect(gatewayURL: settings.gatewayURL,
+                              language: settings.sttLanguage,
+                              voice: settings.ttsVoice)
+
+        // On-device services vẫn khởi tạo nhưng không dùng trong relay mode
         deepgramService = STTService(apiKey: settings.activeSSTConfig.apiKey, language: settings.sttLanguage)
         ttsService = TTSService(apiKey: settings.activeTTSConfig.apiKey)
         ttsService?.openAIKey = settings.activeTTSConfig.apiKey
@@ -194,6 +205,54 @@ class ChatViewModel: ObservableObject {
         connectWithTimeout(to: settings.gatewayURL)
     }
 
+    private func setupRelayCallbacks() {
+        relayService?.onReady = { [weak self] in
+            DispatchQueue.main.async {
+                self?.chatState = .idle
+                self?.isToggleEnabled = true
+                self?.showReconnectButton = false
+            }
+        }
+        relayService?.onTranscript = { [weak self] text, isFinal in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                if isFinal && !text.isEmpty {
+                    self.accumulatedText += (self.accumulatedText.isEmpty ? "" : " ") + text
+                    self.currentTranscript = self.accumulatedText
+                } else if !isFinal {
+                    self.currentTranscript = self.accumulatedText + (self.accumulatedText.isEmpty ? "" : " ") + text
+                }
+            }
+        }
+        relayService?.onAIText = { [weak self] text in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                // Show transcript as user message
+                if !self.accumulatedText.isEmpty {
+                    let userMsg = Message(role: .user, text: self.accumulatedText)
+                    self.messages.append(userMsg)
+                    self.accumulatedText = ""
+                    self.currentTranscript = ""
+                }
+                let aiMsg = Message(role: .assistant, text: text)
+                self.messages.append(aiMsg)
+                self.chatState = .aiSpeaking
+            }
+        }
+        relayService?.onTTSStart = { [weak self] in
+            DispatchQueue.main.async { self?.chatState = .aiSpeaking }
+        }
+        relayService?.onTTSEnd = { [weak self] in
+            DispatchQueue.main.async {
+                self?.chatState = .idle
+                // Auto restart mic
+                if self?.isToggleEnabled == true {
+                    self?.startUserSpeaking()
+                }
+            }
+        }
+    }
+
     private func connectWithTimeout(to url: String) {
         showReconnectButton = false
         gatewayService.connect(to: url, token: settings.gatewayToken)
@@ -258,23 +317,31 @@ class ChatViewModel: ObservableObject {
         currentTranscript = ""
         lastMeaningfulTranscript = ""
         accumulatedText = ""
-        deepgramService?.connect()
 
-        audioService.startRecording { [weak self] buffer in
-            self?.deepgramService?.sendAudioBuffer(buffer)
+        if let relay = relayService {
+            relay.startMic()
+        } else {
+            deepgramService?.connect()
+            audioService.startRecording { [weak self] buffer in
+                self?.deepgramService?.sendAudioBuffer(buffer)
+            }
         }
     }
 
     private func stopUserSpeaking() {
         silenceTimer?.invalidate()
         silenceTimer = nil
-        audioService.stopRecording()
-        deepgramService?.disconnect()
 
-        if !currentTranscript.isEmpty {
-            finalizeSpeech(currentTranscript)
+        if let relay = relayService {
+            relay.stopMic()
         } else {
-            chatState = .idle
+            audioService.stopRecording()
+            deepgramService?.disconnect()
+            if !currentTranscript.isEmpty {
+                finalizeSpeech(currentTranscript)
+            } else {
+                chatState = .idle
+            }
         }
     }
 

@@ -26,6 +26,7 @@
 		0A51BF46E7244384A4CEE60C /* OpenAITTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */; };
 		AA000014 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* WakeWordService.swift */; };
 		AA000015 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* AudioService.swift */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */; };
 		AA000016 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* KeychainHelper.swift */; };
 		AA000017 /* LevenshteinHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017 /* LevenshteinHelper.swift */; };
 /* End PBXBuildFile section */
@@ -50,6 +51,7 @@
 		A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITTSService.swift; sourceTree = "<group>"; };
 		AA100014 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
 		AA100015 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRelayService.swift; sourceTree = "<group>"; };
 		AA100016 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		AA100017 /* LevenshteinHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevenshteinHelper.swift; sourceTree = "<group>"; };
 		AA200001 /* KuromiApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KuromiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +125,7 @@
 				A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */,
 				AA100014 /* WakeWordService.swift */,
 				AA100015 /* AudioService.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -239,6 +242,7 @@
 				0A51BF46E7244384A4CEE60C /* OpenAITTSService.swift in Sources */,
 				AA000014 /* WakeWordService.swift in Sources */,
 				AA000015 /* AudioService.swift in Sources */,
+				B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */,
 				AA000016 /* KeychainHelper.swift in Sources */,
 				AA000017 /* LevenshteinHelper.swift in Sources */,
 			);
