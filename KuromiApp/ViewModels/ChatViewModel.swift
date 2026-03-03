@@ -91,18 +91,17 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
 
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
                 if isFinal {
-                    // Cộng dồn đoạn đã confirm vào accumulated
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        self.accumulatedText = self.accumulatedText.isEmpty
-                            ? trimmed
-                            : self.accumulatedText + " " + trimmed
-                    }
+                    // Deepgram hay gửi is_final=true với text rỗng sau silence → bỏ qua
+                    guard !trimmed.isEmpty else { return }
+                    self.accumulatedText = self.accumulatedText.isEmpty
+                        ? trimmed
+                        : self.accumulatedText + " " + trimmed
                     self.currentTranscript = self.accumulatedText
                 } else {
                     // Interim: hiện accumulated + đoạn đang nói
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.currentTranscript = self.accumulatedText.isEmpty
                         ? trimmed
                         : (trimmed.isEmpty ? self.accumulatedText : self.accumulatedText + " " + trimmed)
