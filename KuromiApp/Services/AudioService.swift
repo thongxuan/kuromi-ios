@@ -169,13 +169,15 @@ class AudioService: NSObject, ObservableObject {
     // MARK: - Recording
 
     func startRecording(bufferCallback: @escaping (AVAudioPCMBuffer) -> Void) {
-        guard !isRecording else { return }
-        audioBufferCallback = bufferCallback
+        // Luôn cleanup trước để tránh double-tap crash
+        if engine.isRunning { engine.stop() }
+        inputNode.removeTap(onBus: 0)
+        isRecording = false
 
+        audioBufferCallback = bufferCallback
         let inputFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             guard let self = self else { return }
-            // Calculate level
             if let channelData = buffer.floatChannelData?[0] {
                 let frameCount = Int(buffer.frameLength)
                 var sum: Float = 0
@@ -186,21 +188,18 @@ class AudioService: NSObject, ObservableObject {
             }
             bufferCallback(buffer)
         }
-
         do {
-            if !audioEngine.isRunning {
-                try audioEngine.start()
-            }
+            try engine.start()
             DispatchQueue.main.async { self.isRecording = true }
         } catch {
             print("AudioEngine start error: \(error)")
+            inputNode.removeTap(onBus: 0)
         }
     }
 
     func stopRecording() {
-        guard isRecording else { return }
         inputNode.removeTap(onBus: 0)
-        engine.stop()
+        if engine.isRunning { engine.stop() }
         DispatchQueue.main.async {
             self.isRecording = false
             self.inputLevel = 0
@@ -208,32 +207,9 @@ class AudioService: NSObject, ObservableObject {
     }
 
     func stopEngineForPlayback() {
-        if engine.isRunning {
-            inputNode.removeTap(onBus: 0)
-            engine.stop()
-        }
+        inputNode.removeTap(onBus: 0)
+        if engine.isRunning { engine.stop() }
         DispatchQueue.main.async { self.isRecording = false; self.inputLevel = 0 }
-    }
-
-    func restartEngineForRecording(bufferCallback: @escaping (AVAudioPCMBuffer) -> Void) {
-        audioBufferCallback = bufferCallback
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
-            guard let self = self else { return }
-            if let channelData = buffer.floatChannelData?[0] {
-                let frameCount = Int(buffer.frameLength)
-                var sum: Float = 0
-                for i in 0..<frameCount { sum += abs(channelData[i]) }
-                DispatchQueue.main.async { self.inputLevel = frameCount > 0 ? sum / Float(frameCount) : 0 }
-            }
-            bufferCallback(buffer)
-        }
-        do {
-            try engine.start()
-            DispatchQueue.main.async { self.isRecording = true }
-        } catch {
-            print("Engine restart error: \(error)")
-        }
     }
 
     // MARK: - Playback

@@ -219,13 +219,8 @@ class ChatViewModel: ObservableObject {
         lastMeaningfulTranscript = ""
         deepgramService?.connect()
 
-        let callback: (AVAudioPCMBuffer) -> Void = { [weak self] buffer in
+        audioService.startRecording { [weak self] buffer in
             self?.deepgramService?.sendAudioBuffer(buffer)
-        }
-        if audioService.engine.isRunning {
-            audioService.startRecording(bufferCallback: callback)
-        } else {
-            audioService.restartEngineForRecording(bufferCallback: callback)
         }
     }
 
