@@ -115,7 +115,7 @@ class ChatViewModel: ObservableObject {
 
         // ElevenLabs playback finished → tự động nghe lại
         elevenLabsService?.onPlaybackFinished = { [weak self] in
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 guard let self = self else { return }
                 if self.isToggleEnabled {
                     self.startUserSpeaking()
@@ -219,8 +219,13 @@ class ChatViewModel: ObservableObject {
         lastMeaningfulTranscript = ""
         deepgramService?.connect()
 
-        audioService.startRecording { [weak self] buffer in
+        let callback: (AVAudioPCMBuffer) -> Void = { [weak self] buffer in
             self?.deepgramService?.sendAudioBuffer(buffer)
+        }
+        if audioService.engine.isRunning {
+            audioService.startRecording(bufferCallback: callback)
+        } else {
+            audioService.restartEngineForRecording(bufferCallback: callback)
         }
     }
 
@@ -260,6 +265,8 @@ class ChatViewModel: ObservableObject {
         let msg = Message(role: .assistant, text: text)
         messages.append(msg)
         chatState = .aiSpeaking
+        // Stop engine trước để AVAudioPlayer không bị conflict
+        audioService.stopEngineForPlayback()
         let voiceID = settings.selectedVoiceID.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : settings.selectedVoiceID
         elevenLabsService?.speak(text: text, voiceID: voiceID, language: settings.sttLanguage)
     }
