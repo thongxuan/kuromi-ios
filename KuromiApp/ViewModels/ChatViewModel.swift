@@ -245,11 +245,15 @@ class ChatViewModel: ObservableObject {
         relayService?.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 self?.chatState = .idle
+                self?.inputLevel = 0.0
                 // Auto restart mic
                 if self?.isToggleEnabled == true {
                     self?.startUserSpeaking()
                 }
             }
+        }
+        relayService?.onAudioLevel = { [weak self] level in
+            self?.inputLevel = level
         }
     }
 

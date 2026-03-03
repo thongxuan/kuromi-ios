@@ -12,6 +12,7 @@ class AudioRelayService: NSObject, ObservableObject {
     var onTTSStart: (() -> Void)?
     var onTTSEnd: (() -> Void)?
     var onReady: (() -> Void)?
+    var onAudioLevel: ((Float) -> Void)?
 
     private var ws: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -61,7 +62,12 @@ class AudioRelayService: NSObject, ObservableObject {
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: nativeFormat) { [weak self] buffer, _ in
             guard let self = self, let converted = self.convertBuffer(buffer, to: format) else { return }
             let data = self.pcmData(from: converted)
-            if !data.isEmpty { self.sendBinary(data) }
+            if !data.isEmpty {
+                self.sendBinary(data)
+                // Compute RMS audio level for orb animation
+                let level = self.computeRMS(from: converted)
+                DispatchQueue.main.async { self.onAudioLevel?(level) }
+            }
         }
         do {
             try audioEngine.start()
@@ -198,6 +204,20 @@ class AudioRelayService: NSObject, ObservableObject {
         guard let int16 = buffer.int16ChannelData else { return Data() }
         let frameLength = Int(buffer.frameLength)
         return Data(bytes: int16[0], count: frameLength * 2)
+    }
+
+    private func computeRMS(from buffer: AVAudioPCMBuffer) -> Float {
+        guard let int16 = buffer.int16ChannelData else { return 0 }
+        let frameLength = Int(buffer.frameLength)
+        guard frameLength > 0 else { return 0 }
+        var sum: Float = 0
+        for i in 0..<frameLength {
+            let sample = Float(int16[0][i]) / 32768.0
+            sum += sample * sample
+        }
+        let rms = sqrt(sum / Float(frameLength))
+        // Normalize: typical speech RMS ~0.01-0.1, scale to 0-1
+        return min(rms * 8.0, 1.0)
     }
 }
 
