@@ -145,8 +145,20 @@ class ChatViewModel: ObservableObject {
     // MARK: - Lifecycle
 
     func onAppear() {
+        setupAudioSession()
         connectWithTimeout(to: settings.gatewayURL)
         setupWakeWordListening()
+    }
+
+    private func setupAudioSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .voiceChat,
+                                    options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+        } catch {
+            print("AudioSession setup error: \(error)")
+        }
     }
 
     func reconnect() {

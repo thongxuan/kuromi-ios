@@ -112,9 +112,11 @@ class ElevenLabsService: NSObject, ObservableObject {
 
         DispatchQueue.main.async {
             do {
+                // Giữ .playAndRecord — coexist với engine mic
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
-                try session.setActive(true, options: .notifyOthersOnDeactivation)
+                try session.setCategory(.playAndRecord, mode: .voiceChat,
+                                        options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+                try session.setActive(true)
                 self.audioPlayer = try AVAudioPlayer(contentsOf: tempURL)
                 self.audioPlayer?.delegate = self
                 self.audioPlayer?.volume = 1.0
@@ -151,10 +153,6 @@ class ElevenLabsService: NSObject, ObservableObject {
 
 extension ElevenLabsService: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        // Switch session về playAndRecord cho mic
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
-        try? session.setActive(true)
         DispatchQueue.main.async {
             self.isPlaying = false
             self.onPlaybackFinished?()

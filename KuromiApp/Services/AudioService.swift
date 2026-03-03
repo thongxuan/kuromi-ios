@@ -167,12 +167,22 @@ class AudioService: NSObject, ObservableObject {
     }
 
     // MARK: - Recording
+    // Engine luôn chạy, chỉ add/remove tap để bật tắt recording
+    // Không stop engine khi TTS play — dùng .playAndRecord suốt
+
+    private func ensureEngineRunning() {
+        guard !engine.isRunning else { return }
+        do {
+            try engine.start()
+        } catch {
+            print("AudioEngine start error: \(error)")
+        }
+    }
 
     func startRecording(bufferCallback: @escaping (AVAudioPCMBuffer) -> Void) {
-        // Luôn cleanup trước để tránh double-tap crash
-        if engine.isRunning { engine.stop() }
+        // Remove tap cũ nếu có
         inputNode.removeTap(onBus: 0)
-        isRecording = false
+        DispatchQueue.main.async { self.isRecording = false; self.inputLevel = 0 }
 
         audioBufferCallback = bufferCallback
         let inputFormat = inputNode.outputFormat(forBus: 0)
@@ -188,18 +198,13 @@ class AudioService: NSObject, ObservableObject {
             }
             bufferCallback(buffer)
         }
-        do {
-            try engine.start()
-            DispatchQueue.main.async { self.isRecording = true }
-        } catch {
-            print("AudioEngine start error: \(error)")
-            inputNode.removeTap(onBus: 0)
-        }
+        ensureEngineRunning()
+        DispatchQueue.main.async { self.isRecording = true }
     }
 
     func stopRecording() {
         inputNode.removeTap(onBus: 0)
-        if engine.isRunning { engine.stop() }
+        // Không stop engine — giữ để coexist với AVAudioPlayer
         DispatchQueue.main.async {
             self.isRecording = false
             self.inputLevel = 0
@@ -207,9 +212,8 @@ class AudioService: NSObject, ObservableObject {
     }
 
     func stopEngineForPlayback() {
-        inputNode.removeTap(onBus: 0)
-        if engine.isRunning { engine.stop() }
-        DispatchQueue.main.async { self.isRecording = false; self.inputLevel = 0 }
+        // Không cần stop engine nữa — session .playAndRecord handle cả 2
+        stopRecording()
     }
 
     // MARK: - Playback
