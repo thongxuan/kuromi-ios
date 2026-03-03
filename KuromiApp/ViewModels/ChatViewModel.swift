@@ -33,7 +33,7 @@ class ChatViewModel: ObservableObject {
     private var transcriptStableCount: Int = 0
     private var accumulatedText: String = ""
     @Published var showReconnectButton: Bool = false
-    @Published var isLoudSpeaker: Bool = true
+    @Published var isLoudSpeaker: Bool = UserDefaults.standard.object(forKey: "kuromi_loud_speaker") == nil ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
 
     init() {
         settings = AppSettings.load()!
@@ -167,6 +167,7 @@ class ChatViewModel: ObservableObject {
 
     func toggleSpeaker() {
         isLoudSpeaker.toggle()
+        UserDefaults.standard.set(isLoudSpeaker, forKey: "kuromi_loud_speaker")
         let session = AVAudioSession.sharedInstance()
         let options: AVAudioSession.CategoryOptions = isLoudSpeaker
             ? [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
@@ -178,8 +179,10 @@ class ChatViewModel: ObservableObject {
     private func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat,
-                                    options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            let options: AVAudioSession.CategoryOptions = isLoudSpeaker
+                ? [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
+                : [.allowBluetooth, .allowBluetoothA2DP]
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
             try session.setActive(true)
         } catch {
             print("AudioSession setup error: \(error)")
