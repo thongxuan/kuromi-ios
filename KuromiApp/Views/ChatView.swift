@@ -150,76 +150,82 @@ struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
 
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var glowRadius: CGFloat = 0
+    @State private var rayRotation: Double = 0
+    @State private var rayOpacity: Double = 0
+    @State private var rayLengthScale: CGFloat = 0.8
 
-    // Fixed container size — circle scale từ center, không nhảy vị trí
     private let containerSize: CGFloat = 160
+    private let orbBase: CGFloat = 88      // fixed orb size
+    private let rayCount = 12
 
-    private var circleScale: CGFloat {
+    // Orb scale reactive theo voice level khi user speaking
+    private var orbScale: CGFloat {
         switch chatState {
-        case .idle, .connecting, .error: return 0.55
-        case .userSpeaking: return 0.75 + CGFloat(inputLevel) * 0.35
-        case .aiSpeaking: return 0.65 * pulseScale
+        case .userSpeaking: return 1.0 + CGFloat(inputLevel) * 3.0
+        default: return 1.0
         }
     }
 
     private var orbColor: Color {
         switch chatState {
-        case .idle: return Color.white.opacity(0.15)
-        case .userSpeaking: return Color.purple.opacity(0.85)
-        case .aiSpeaking: return Color.purple.opacity(0.5)
-        case .connecting: return Color.white.opacity(0.07)
+        case .idle, .connecting: return Color.white.opacity(0.13)
+        case .userSpeaking: return Color.purple.opacity(0.88)
+        case .aiSpeaking: return Color.purple.opacity(0.6)
         case .error: return Color.red.opacity(0.4)
-        }
-    }
-
-    private var glowColor: Color {
-        switch chatState {
-        case .userSpeaking: return .purple
-        case .aiSpeaking: return Color.purple.opacity(0.5)
-        default: return .clear
         }
     }
 
     var body: some View {
         ZStack {
-            // Glow rings — cũng fixed center trong container
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(glowColor.opacity(max(0, 0.06 - Double(i) * 0.018)))
-                    .frame(width: containerSize * circleScale + CGFloat(i * 28),
-                           height: containerSize * circleScale + CGFloat(i * 28))
-                    .opacity(chatState == .idle || chatState == .connecting ? 0 : 1)
+            // Sun rays (AI speaking only)
+            if case .aiSpeaking = chatState {
+                ForEach(0..<rayCount, id: \.self) { i in
+                    let angle = Double(i) / Double(rayCount) * 360.0
+                    RayShape(
+                        angle: angle + rayRotation,
+                        orbRadius: orbBase / 2,
+                        length: 18 * rayLengthScale,
+                        width: 2.5
+                    )
+                    .stroke(Color.purple.opacity(rayOpacity * (i % 2 == 0 ? 1.0 : 0.55)),
+                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                }
             }
 
-            // Main orb
+            // Breathing rings (user speaking)
+            if case .userSpeaking = chatState {
+                ForEach(0..<2, id: \.self) { i in
+                    Circle()
+                        .strokeBorder(Color.purple.opacity(0.12 - Double(i) * 0.04), lineWidth: 1)
+                        .frame(width: orbBase * orbScale + CGFloat(i + 1) * 20,
+                               height: orbBase * orbScale + CGFloat(i + 1) * 20)
+                }
+            }
+
+            // Main orb — fixed size, chỉ scale
             Circle()
                 .fill(
                     RadialGradient(
-                        gradient: Gradient(colors: [orbColor, orbColor.opacity(0.5)]),
-                        center: .center, startRadius: 0,
-                        endRadius: containerSize * circleScale / 2
+                        gradient: Gradient(colors: [orbColor, orbColor.opacity(0.45)]),
+                        center: .center, startRadius: 0, endRadius: orbBase / 2
                     )
                 )
-                .frame(width: containerSize * circleScale, height: containerSize * circleScale)
-                .shadow(color: glowColor, radius: glowRadius)
-                .overlay(
-                    Circle()
-                        .strokeBorder(glowColor.opacity(0.4), lineWidth: 1.5)
-                )
-                .scaleEffect(circleScale / circleScale) // keep in place
+                .frame(width: orbBase, height: orbBase)
+                .scaleEffect(orbScale)
+                .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
+                .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
             // Icon
             Image(systemName: orbIcon)
-                .font(.system(size: 26, weight: .light))
-                .foregroundColor(.white.opacity(0.65))
+                .font(.system(size: 24, weight: .light))
+                .foregroundColor(.white.opacity(0.7))
+                .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
+                .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
         }
-        .frame(width: containerSize, height: containerSize) // fixed frame
-        .animation(.spring(response: 0.3, dampingFraction: 0.65), value: circleScale)
-        .animation(.easeInOut(duration: 0.4), value: orbColor)
-        .onAppear { startAIPulse() }
-        .onChange(of: chatState) { _, _ in startAIPulse() }
+        .frame(width: containerSize, height: containerSize)
+        .animation(.easeInOut(duration: 0.35), value: orbColor)
+        .onAppear { updateAnimation() }
+        .onChange(of: chatState) { _, _ in updateAnimation() }
     }
 
     private var orbIcon: String {
@@ -232,16 +238,50 @@ struct OrbView: View {
         }
     }
 
-    private func startAIPulse() {
-        guard case .aiSpeaking = chatState else {
-            pulseScale = 1.0
-            glowRadius = 0
-            return
+    private func updateAnimation() {
+        if case .aiSpeaking = chatState {
+            // Rotate rays
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+                rayRotation = 360
+            }
+            // Fade + pulse rays
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                rayOpacity = 0.75
+                rayLengthScale = 1.25
+            }
+        } else {
+            withAnimation(.easeOut(duration: 0.3)) {
+                rayOpacity = 0
+                rayLengthScale = 0.8
+                rayRotation = 0
+            }
         }
-        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-            pulseScale = 1.12
-            glowRadius = 20
-        }
+    }
+}
+
+// Hình dạng một tia sáng
+struct RayShape: Shape {
+    var angle: Double    // degrees
+    var orbRadius: CGFloat
+    var length: CGFloat
+    var width: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let rad = angle * .pi / 180
+        let gap: CGFloat = 4
+        let start = CGPoint(
+            x: center.x + cos(rad) * (orbRadius + gap),
+            y: center.y + sin(rad) * (orbRadius + gap)
+        )
+        let end = CGPoint(
+            x: center.x + cos(rad) * (orbRadius + gap + length),
+            y: center.y + sin(rad) * (orbRadius + gap + length)
+        )
+        var p = Path()
+        p.move(to: start)
+        p.addLine(to: end)
+        return p
     }
 }
 
