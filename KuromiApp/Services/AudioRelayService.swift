@@ -13,6 +13,8 @@ class AudioRelayService: NSObject, ObservableObject {
     var onTTSEnd: (() -> Void)?
     var onReady: (() -> Void)?
     var onAudioLevel: ((Float) -> Void)?
+    var onMicStop: (() -> Void)?
+    var onUtteranceEnd: (() -> Void)?
 
     private var ws: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -131,6 +133,11 @@ class AudioRelayService: NSObject, ObservableObject {
             case "tts_end":
                 self.isReceivingTTS = false
                 self.playTTSBuffer()
+            case "mic_stop":
+                self.stopMic()
+                self.onMicStop?()
+            case "utterance_end":
+                self.onUtteranceEnd?()
             default: break
             }
         }

@@ -258,6 +258,21 @@ class ChatViewModel: ObservableObject {
         relayService?.onAudioLevel = { [weak self] level in
             self?.inputLevel = level
         }
+        relayService?.onMicStop = { [weak self] in
+            DispatchQueue.main.async {
+                self?.chatState = .idle
+                self?.inputLevel = 0.0
+            }
+        }
+        relayService?.onUtteranceEnd = { [weak self] in
+            DispatchQueue.main.async {
+                // Deepgram detected end of speech — stop mic if still listening
+                guard let self = self, case .userSpeaking = self.chatState else { return }
+                self.relayService?.stopMic()
+                self.chatState = .idle
+                self.inputLevel = 0.0
+            }
+        }
     }
 
     private func connectWithTimeout(to url: String) {
