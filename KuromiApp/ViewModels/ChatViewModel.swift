@@ -41,9 +41,9 @@ class ChatViewModel: ObservableObject {
     }
 
     private func setupServices() {
-        deepgramService = STTService(apiKey: settings.deepgramAPIKey, language: settings.sttLanguage)
-        ttsService = TTSService(apiKey: settings.ttsAPIKey)
-        ttsService?.openAIKey = settings.openAIKey
+        deepgramService = STTService(apiKey: settings.activeSSTConfig.apiKey, language: settings.sttLanguage)
+        ttsService = TTSService(apiKey: settings.activeTTSConfig.apiKey)
+        ttsService?.openAIKey = settings.activeTTSConfig.apiKey
 
         // Gateway
         gatewayService.$state
@@ -338,9 +338,9 @@ class ChatViewModel: ObservableObject {
     func reloadSettings() {
         guard let newSettings = AppSettings.load() else { return }
         settings = newSettings
-        deepgramService = STTService(apiKey: newSettings.deepgramAPIKey, language: newSettings.sttLanguage)
-        ttsService = TTSService(apiKey: newSettings.ttsAPIKey)
-        ttsService?.openAIKey = newSettings.openAIKey
+        deepgramService = STTService(apiKey: newSettings.activeSSTConfig.apiKey, language: newSettings.sttLanguage)
+        ttsService = TTSService(apiKey: newSettings.activeTTSConfig.apiKey)
+        ttsService?.openAIKey = newSettings.activeTTSConfig.apiKey
         ttsService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.async { self?.chatState = .idle }
         }

@@ -3,6 +3,8 @@ import SwiftUI
 struct SetupView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SetupViewModel
+    @State private var showSTTSheet = false
+    @State private var showTTSSheet = false
 
     init(isEditMode: Bool = false) {
         _viewModel = StateObject(wrappedValue: SetupViewModel(isEditMode: isEditMode))
@@ -44,23 +46,21 @@ struct SetupView: View {
                         isSecure: true
                     )
 
-                    KuromiTextField(
-                        title: "Deepgram API Key",
-                        placeholder: "dg_...",
-                        text: $viewModel.deepgramAPIKey,
+                    // STT Provider button
+                    ProviderButton(
                         icon: "mic.fill",
-                        isSecure: true,
-                        validation: viewModel.deepgramValidation
-                    )
+                        label: "Speech-to-Text",
+                        provider: viewModel.settings?.selectedSTTProvider.displayName ?? "Not configured",
+                        hasKey: !(viewModel.settings?.activeSSTConfig.apiKey.isEmpty ?? true)
+                    ) { showSTTSheet = true }
 
-                    KuromiTextField(
-                        title: "OpenAI API Key (TTS)",
-                        placeholder: "sk-proj-...",
-                        text: $viewModel.openAIKey,
+                    // TTS Provider button
+                    ProviderButton(
                         icon: "speaker.wave.2.fill",
-                        isSecure: true,
-                        validation: viewModel.openAIValidation
-                    )
+                        label: "Text-to-Speech",
+                        provider: viewModel.settings?.selectedTTSProvider.displayName ?? "Not configured",
+                        hasKey: !(viewModel.settings?.activeTTSConfig.apiKey.isEmpty ?? true)
+                    ) { showTTSSheet = true }
                 }
                 .padding(.horizontal, 24)
 
@@ -106,11 +106,63 @@ struct SetupView: View {
                 .padding(.bottom, 40)
             }
         }
+        .sheet(isPresented: $showSTTSheet, onDismiss: { viewModel.reloadSettings() }) {
+            if let s = Binding($viewModel.settings) {
+                STTProviderSheet(settings: s)
+            }
+        }
+        .sheet(isPresented: $showTTSSheet, onDismiss: { viewModel.reloadSettings() }) {
+            if let s = Binding($viewModel.settings) {
+                TTSProviderSheet(settings: s)
+            }
+        }
     }
 
     private func continueAction() {
         guard viewModel.save() != nil else { return }
         appState.currentScreen = .voiceSetup
+    }
+}
+
+// MARK: - Provider Button
+struct ProviderButton: View {
+    let icon: String
+    let label: String
+    let provider: String
+    let hasKey: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text(provider)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(hasKey ? Color.green : Color.orange)
+                        .frame(width: 7, height: 7)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.06)))
+        }
     }
 }
 

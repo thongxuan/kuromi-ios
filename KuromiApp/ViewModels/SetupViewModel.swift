@@ -11,16 +11,22 @@ enum ValidationState {
 class SetupViewModel: ObservableObject {
     @Published var gatewayURL: String = ""
     @Published var gatewayToken: String = ""
-    @Published var deepgramAPIKey: String = ""
-    @Published var openAIKey: String = ""
     @Published var errorMessage: String = ""
     @Published var isLoading: Bool = false
+    @Published var settings: AppSettings? = AppSettings.load()
 
+    // Legacy (still used for validation display)
+    @Published var deepgramAPIKey: String = ""
+    @Published var openAIKey: String = ""
     @Published var deepgramValidation: ValidationState = .idle
     @Published var openAIValidation: ValidationState = .idle
 
     var isEditMode: Bool = false
     private var cancellables = Set<AnyCancellable>()
+
+    func reloadSettings() {
+        settings = AppSettings.load()
+    }
 
     init(isEditMode: Bool = false) {
         self.isEditMode = isEditMode
@@ -53,15 +59,11 @@ class SetupViewModel: ObservableObject {
     }
 
     var isValid: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !deepgramAPIKey.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !openAIKey.trimmingCharacters(in: .whitespaces).isEmpty
+        !gatewayURL.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var canContinue: Bool {
         guard isValid else { return false }
-        if case .failure = deepgramValidation { return false }
-        if case .failure = openAIValidation { return false }
         return true
     }
 
@@ -101,24 +103,16 @@ class SetupViewModel: ObservableObject {
             return nil
         }
         errorMessage = ""
-        var settings = AppSettings.load() ?? AppSettings(
-            gatewayURL: "",
-            gatewayToken: "",
-            deepgramAPIKey: "",
-            ttsAPIKey: "",
-            selectedVoiceID: "",
-            selectedVoiceName: "",
-            sttLanguage: "vi",
-            wakeWord: "hey kuromi",
-            wakeWordSamples: [],
-            openAIKey: "",
-            ttsVoice: "nova"
+        var s = AppSettings.load() ?? AppSettings(
+            gatewayURL: "", gatewayToken: "",
+            selectedVoiceID: "", selectedVoiceName: "",
+            sttLanguage: "vi", wakeWord: "hey kuromi",
+            wakeWordSamples: [], ttsVoice: "nova"
         )
-        settings.gatewayURL = gatewayURL.trimmingCharacters(in: .whitespaces)
-        settings.gatewayToken = gatewayToken.trimmingCharacters(in: .whitespaces)
-        settings.deepgramAPIKey = deepgramAPIKey.trimmingCharacters(in: .whitespaces)
-        settings.openAIKey = openAIKey.trimmingCharacters(in: .whitespaces)
-        settings.save()
-        return settings
+        s.gatewayURL = gatewayURL.trimmingCharacters(in: .whitespaces)
+        s.gatewayToken = gatewayToken.trimmingCharacters(in: .whitespaces)
+        s.save()
+        self.settings = s
+        return s
     }
 }
