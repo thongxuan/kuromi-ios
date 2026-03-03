@@ -13,6 +13,7 @@ class SetupViewModel: ObservableObject {
     @Published var gatewayToken: String = ""
     @Published var deepgramAPIKey: String = ""
     @Published var elevenLabsAPIKey: String = ""
+    @Published var openAIKey: String = ""
     @Published var errorMessage: String = ""
     @Published var isLoading: Bool = false
 
@@ -33,6 +34,7 @@ class SetupViewModel: ObservableObject {
             gatewayToken = settings.gatewayToken
             deepgramAPIKey = settings.deepgramAPIKey
             elevenLabsAPIKey = settings.elevenLabsAPIKey
+            openAIKey = settings.openAIKey
         }
 
         // Auto-validate when keys change (debounced)
@@ -127,12 +129,15 @@ class SetupViewModel: ObservableObject {
             selectedVoiceName: "",
             sttLanguage: "vi",
             wakeWord: "hey kuromi",
-            wakeWordSamples: []
+            wakeWordSamples: [],
+            openAIKey: "",
+            ttsVoice: "nova"
         )
         settings.gatewayURL = gatewayURL.trimmingCharacters(in: .whitespaces)
         settings.gatewayToken = gatewayToken.trimmingCharacters(in: .whitespaces)
         settings.deepgramAPIKey = deepgramAPIKey.trimmingCharacters(in: .whitespaces)
         settings.elevenLabsAPIKey = elevenLabsAPIKey.trimmingCharacters(in: .whitespaces)
+        settings.openAIKey = openAIKey.trimmingCharacters(in: .whitespaces)
         settings.save()
         return settings
     }

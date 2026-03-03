@@ -54,12 +54,12 @@ struct SetupView: View {
                     )
 
                     KuromiTextField(
-                        title: "ElevenLabs API Key",
-                        placeholder: "sk_...",
-                        text: $viewModel.elevenLabsAPIKey,
+                        title: "OpenAI API Key (TTS)",
+                        placeholder: "sk-proj-...",
+                        text: $viewModel.openAIKey,
                         icon: "speaker.wave.2.fill",
                         isSecure: true,
-                        validation: viewModel.elevenLabsValidation
+                        validation: .none
                     )
                 }
                 .padding(.horizontal, 24)

@@ -21,7 +21,7 @@ class ChatViewModel: ObservableObject {
     private let audioService = AudioService.shared
     private var gatewayService = GatewayService()
     private var deepgramService: DeepgramService?
-    private var elevenLabsService: ElevenLabsService?
+    private var openAITTSService: OpenAITTSService?
     private var wakeWordService = WakeWordService()
 
     private var settings: AppSettings
@@ -41,7 +41,7 @@ class ChatViewModel: ObservableObject {
 
     private func setupServices() {
         deepgramService = DeepgramService(apiKey: settings.deepgramAPIKey, language: settings.sttLanguage)
-        elevenLabsService = ElevenLabsService(apiKey: settings.elevenLabsAPIKey)
+        openAITTSService = OpenAITTSService(apiKey: settings.openAIKey)
 
         // Gateway
         gatewayService.$state
@@ -127,7 +127,7 @@ class ChatViewModel: ObservableObject {
         }
 
         // ElevenLabs playback finished → tự động nghe lại
-        elevenLabsService?.onPlaybackFinished = { [weak self] in
+        openAITTSService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 guard let self = self else { return }
                 if self.isToggleEnabled {
@@ -215,7 +215,7 @@ class ChatViewModel: ObservableObject {
         case .idle, .aiSpeaking:
             // Nếu AI đang nói thì ngắt luôn và bắt đầu nghe
             if case .aiSpeaking = chatState {
-                elevenLabsService?.stopSpeaking()
+                openAITTSService?.stopSpeaking()
             }
             startUserSpeaking()
         case .userSpeaking:
@@ -288,14 +288,14 @@ class ChatViewModel: ObservableObject {
         chatState = .aiSpeaking
         // Stop engine trước để AVAudioPlayer không bị conflict
         audioService.stopEngineForPlayback()
-        let voiceID = settings.selectedVoiceID.isEmpty ? "21m00Tcm4TlvDq8ikWAM" : settings.selectedVoiceID
-        elevenLabsService?.speak(text: text, voiceID: voiceID, language: settings.sttLanguage)
+        let voice = settings.ttsVoice.isEmpty ? OpenAITTSService.defaultVoice : settings.ttsVoice
+        openAITTSService?.speak(text: text, voice: voice)
     }
 
     // MARK: - AI Interrupt
 
     private func interruptAI() {
-        elevenLabsService?.stopSpeaking()
+        openAITTSService?.stopSpeaking()
         chatState = .idle
     }
 
@@ -304,7 +304,7 @@ class ChatViewModel: ObservableObject {
     private func handleWakeWord(_ phrase: String) {
         DispatchQueue.main.async {
             // Stop any current activity
-            self.elevenLabsService?.stopSpeaking()
+            self.openAITTSService?.stopSpeaking()
             self.audioService.stopRecording()
             self.deepgramService?.disconnect()
 
@@ -324,8 +324,8 @@ class ChatViewModel: ObservableObject {
         guard let newSettings = AppSettings.load() else { return }
         settings = newSettings
         deepgramService = DeepgramService(apiKey: newSettings.deepgramAPIKey, language: newSettings.sttLanguage)
-        elevenLabsService = ElevenLabsService(apiKey: newSettings.elevenLabsAPIKey)
-        elevenLabsService?.onPlaybackFinished = { [weak self] in
+        openAITTSService = OpenAITTSService(apiKey: newSettings.openAIKey)
+        openAITTSService?.onPlaybackFinished = { [weak self] in
             DispatchQueue.main.async { self?.chatState = .idle }
         }
         deepgramService?.onTranscript = { [weak self] text, isFinal in
