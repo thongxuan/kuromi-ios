@@ -15,16 +15,9 @@ struct ChatView: View {
 
                 Spacer()
 
-                // Orb
-                OrbView(
-                    chatState: viewModel.chatState,
-                    inputLevel: viewModel.inputLevel
-                )
-                .padding(.vertical, 32)
-
                 // Status label
                 statusLabel
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
 
                 // Transcript list
                 TranscriptListView(
@@ -33,12 +26,12 @@ struct ChatView: View {
                     currentAIResponse: viewModel.currentAIResponse,
                     chatState: viewModel.chatState
                 )
-                .frame(maxHeight: 240)
+                .frame(maxHeight: 280)
                 .padding(.horizontal, 20)
 
                 Spacer()
 
-                // Reconnect button (shows after 5s timeout)
+                // Reconnect button
                 if viewModel.showReconnectButton {
                     Button(action: { viewModel.reconnect() }) {
                         HStack(spacing: 8) {
@@ -46,20 +39,18 @@ struct ChatView: View {
                             Text("Reconnect")
                         }
                         .font(.subheadline)
-                        .fontWeight(.medium)
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
                         .frame(height: 44)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
                     }
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 12)
                     .transition(.opacity)
                 }
 
-                // Toggle button
-                toggleButton
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 48)
+                // Orb button (gộp orb + toggle)
+                orbButton
+                    .padding(.bottom, 56)
             }
         }
         .onAppear { viewModel.onAppear() }
@@ -141,58 +132,15 @@ struct ChatView: View {
             .animation(.easeInOut(duration: 0.2), value: label)
     }
 
-    // MARK: - Toggle Button
+    // MARK: - Orb Button
 
-    private var toggleButton: some View {
+    private var orbButton: some View {
         Button(action: { viewModel.toggleSpeaking() }) {
-            HStack(spacing: 12) {
-                Image(systemName: toggleIcon)
-                    .font(.title3)
-                Text(toggleLabel)
-                    .font(.headline)
-            }
-            .foregroundColor(toggleForeground)
-            .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(toggleBackground)
-            )
+            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel)
         }
         .disabled(!viewModel.isToggleEnabled)
-        .opacity(viewModel.isToggleEnabled ? 1.0 : 0.4)
-        .scaleEffect(viewModel.isToggleEnabled ? 1.0 : 0.97)
+        .opacity(viewModel.isToggleEnabled ? 1.0 : 0.5)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.isToggleEnabled)
-    }
-
-    private var toggleIcon: String {
-        switch viewModel.chatState {
-        case .userSpeaking: return "stop.fill"
-        default: return "mic.fill"
-        }
-    }
-
-    private var toggleLabel: String {
-        switch viewModel.chatState {
-        case .connecting: return "Connecting…"
-        case .idle, .aiSpeaking: return "Start Speaking"
-        case .userSpeaking: return "Done Speaking"
-        case .error: return "Reconnecting…"
-        }
-    }
-
-    private var toggleForeground: Color {
-        switch viewModel.chatState {
-        case .userSpeaking: return .white
-        default: return .black
-        }
-    }
-
-    private var toggleBackground: Color {
-        switch viewModel.chatState {
-        case .userSpeaking: return Color.purple
-        default: return Color.white
-        }
     }
 }
 
