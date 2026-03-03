@@ -105,7 +105,7 @@ class SetupViewModel: ObservableObject {
             gatewayURL: "",
             gatewayToken: "",
             deepgramAPIKey: "",
-            elevenLabsAPIKey: "",
+            ttsAPIKey: "",
             selectedVoiceID: "",
             selectedVoiceName: "",
             sttLanguage: "vi",

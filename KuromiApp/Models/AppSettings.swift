@@ -4,7 +4,7 @@ struct AppSettings: Codable {
     var gatewayURL: String
     var gatewayToken: String
     var deepgramAPIKey: String
-    var elevenLabsAPIKey: String
+    var ttsAPIKey: String
     var selectedVoiceID: String
     var selectedVoiceName: String
     var sttLanguage: String
@@ -15,7 +15,7 @@ struct AppSettings: Codable {
 
     static let defaultsKey = "kuromi_settings"
     static let keychainDeepgramKey = "kuromi_deepgram_key"
-    static let keychainElevenLabsKey = "kuromi_elevenlabs_key"
+    static let keychainTTSKey = "kuromi_tts_key"
     static let keychainOpenAIKey = "kuromi_openai_key"
 
     static func load() -> AppSettings? {
@@ -25,7 +25,7 @@ struct AppSettings: Codable {
         }
         // Load sensitive keys from Keychain
         settings.deepgramAPIKey = KeychainHelper.load(key: keychainDeepgramKey) ?? settings.deepgramAPIKey
-        settings.elevenLabsAPIKey = KeychainHelper.load(key: keychainElevenLabsKey) ?? settings.elevenLabsAPIKey
+        settings.ttsAPIKey = KeychainHelper.load(key: keychainTTSKey) ?? settings.ttsAPIKey
         settings.openAIKey = KeychainHelper.load(key: keychainOpenAIKey) ?? settings.openAIKey
         return settings
     }
@@ -34,10 +34,10 @@ struct AppSettings: Codable {
         var toSave = self
         // Save sensitive keys to Keychain
         KeychainHelper.save(key: AppSettings.keychainDeepgramKey, value: deepgramAPIKey)
-        KeychainHelper.save(key: AppSettings.keychainElevenLabsKey, value: elevenLabsAPIKey)
+        KeychainHelper.save(key: AppSettings.keychainTTSKey, value: ttsAPIKey)
         KeychainHelper.save(key: AppSettings.keychainOpenAIKey, value: openAIKey)
         toSave.deepgramAPIKey = ""
-        toSave.elevenLabsAPIKey = ""
+        toSave.ttsAPIKey = ""
         toSave.openAIKey = ""
 
         if let data = try? JSONEncoder().encode(toSave) {

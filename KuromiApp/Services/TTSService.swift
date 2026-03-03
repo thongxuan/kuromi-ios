@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-class ElevenLabsService: NSObject, ObservableObject {
+class TTSService: NSObject, ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var voices: [VoiceOption] = []
 
@@ -54,7 +54,7 @@ class ElevenLabsService: NSObject, ObservableObject {
         let voicesResponse = try JSONDecoder().decode(VoicesResponse.self, from: data)
         var allVoices = voicesResponse.voices
         let accountIds = Set(allVoices.map { $0.voice_id })
-        for v in ElevenLabsService.premadeVoices where !accountIds.contains(v.voice_id) {
+        for v in TTSService.premadeVoices where !accountIds.contains(v.voice_id) {
             allVoices.append(v)
         }
         DispatchQueue.main.async { self.voices = allVoices }
@@ -158,7 +158,7 @@ class ElevenLabsService: NSObject, ObservableObject {
     }
 }
 
-extension ElevenLabsService: AVAudioPlayerDelegate {
+extension TTSService: AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         DispatchQueue.main.async {
             self.isPlaying = false

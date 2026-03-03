@@ -19,8 +19,8 @@
 		AA000009 /* VoiceSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100009 /* VoiceSetupView.swift */; };
 		AA000010 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* ChatView.swift */; };
 		AA000011 /* GatewayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* GatewayService.swift */; };
-		AA000012 /* DeepgramService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* DeepgramService.swift */; };
-		AA000013 /* ElevenLabsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013 /* ElevenLabsService.swift */; };
+		AA000012 /* STTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* STTService.swift */; };
+		AA000013 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013 /* TTSService.swift */; };
 		0A51BF46E7244384A4CEE60C /* OpenAITTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */; };
 		AA000014 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* WakeWordService.swift */; };
 		AA000015 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* AudioService.swift */; };
@@ -41,8 +41,8 @@
 		AA100009 /* VoiceSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSetupView.swift; sourceTree = "<group>"; };
 		AA100010 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		AA100011 /* GatewayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayService.swift; sourceTree = "<group>"; };
-		AA100012 /* DeepgramService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramService.swift; sourceTree = "<group>"; };
-		AA100013 /* ElevenLabsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElevenLabsService.swift; sourceTree = "<group>"; };
+		AA100012 /* STTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTService.swift; sourceTree = "<group>"; };
+		AA100013 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITTSService.swift; sourceTree = "<group>"; };
 		AA100014 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
 		AA100015 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
@@ -112,8 +112,8 @@
 			isa = PBXGroup;
 			children = (
 				AA100011 /* GatewayService.swift */,
-				AA100012 /* DeepgramService.swift */,
-				AA100013 /* ElevenLabsService.swift */,
+				AA100012 /* STTService.swift */,
+				AA100013 /* TTSService.swift */,
 				A0EF4C15C5954CABACA049E9 /* OpenAITTSService.swift */,
 				AA100014 /* WakeWordService.swift */,
 				AA100015 /* AudioService.swift */,
@@ -226,8 +226,8 @@
 				AA000009 /* VoiceSetupView.swift in Sources */,
 				AA000010 /* ChatView.swift in Sources */,
 				AA000011 /* GatewayService.swift in Sources */,
-				AA000012 /* DeepgramService.swift in Sources */,
-				AA000013 /* ElevenLabsService.swift in Sources */,
+				AA000012 /* STTService.swift in Sources */,
+				AA000013 /* TTSService.swift in Sources */,
 				0A51BF46E7244384A4CEE60C /* OpenAITTSService.swift in Sources */,
 				AA000014 /* WakeWordService.swift in Sources */,
 				AA000015 /* AudioService.swift in Sources */,

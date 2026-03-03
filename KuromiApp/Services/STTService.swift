@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-class DeepgramService: NSObject, ObservableObject {
+class STTService: NSObject, ObservableObject {
     @Published var transcript: String = ""
     @Published var isConnected: Bool = false
 
@@ -142,7 +142,7 @@ class DeepgramService: NSObject, ObservableObject {
     }
 }
 
-extension DeepgramService: URLSessionWebSocketDelegate {
+extension STTService: URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
         DispatchQueue.main.async { self.isConnected = true }
     }
