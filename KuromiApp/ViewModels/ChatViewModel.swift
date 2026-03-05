@@ -345,7 +345,11 @@ class ChatViewModel: ObservableObject {
         silenceTimer?.invalidate()
         silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
             guard let self = self, case .userSpeaking = self.chatState else { return }
-            if !self.currentTranscript.isEmpty {
+            if self.relayService != nil {
+                // Relay mode: just stop mic — relay handles transcript+gateway via Deepgram UtteranceEnd
+                self.relayService?.stopMic()
+                self.chatState = .idle
+            } else if !self.currentTranscript.isEmpty {
                 self.finalizeSpeech(self.currentTranscript)
             }
         }
