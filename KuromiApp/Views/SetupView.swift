@@ -82,7 +82,7 @@ struct SetupView: View {
         // Gateway sheet
         .sheet(isPresented: $showGatewaySheet) {
             GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
-                .presentationDetents([.height(480)])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.appSheetBackground)
                 .presentationBackgroundInteraction(.disabled)
@@ -94,7 +94,7 @@ struct SetupView: View {
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase
             )
-            .presentationDetents([.height(480)])
+            .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.appSheetBackground)
             .presentationBackgroundInteraction(.disabled)
@@ -162,37 +162,27 @@ struct GatewaySheet: View {
     var body: some View {
         ZStack {
             Color.appSheetBackground.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Gateway")
-                    .font(.title2).bold().foregroundColor(.appLabel)
-                    .padding(.top, 16)
-
-                VStack(spacing: 16) {
-                    KuromiTextField(
-                        title: "Gateway URL",
-                        placeholder: "ws://192.168.1.1:18789",
-                        text: $gatewayURL,
-                        icon: "antenna.radiowaves.left.and.right"
-                    )
-                    KuromiTextField(
-                        title: "Token",
-                        placeholder: "leave empty if no auth",
-                        text: $gatewayToken,
-                        icon: "key.fill",
-                        isSecure: true
-                    )
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text("Gateway")
+                            .font(.title2).bold().foregroundColor(.appLabel)
+                            .padding(.top, 16)
+                        VStack(spacing: 16) {
+                            KuromiTextField(title: "Gateway URL", placeholder: "ws://192.168.1.1:18789", text: $gatewayURL, icon: "antenna.radiowaves.left.and.right")
+                            KuromiTextField(title: "Token", placeholder: "leave empty if no auth", text: $gatewayToken, icon: "key.fill", isSecure: true)
+                        }
+                    }
+                    .padding(24)
                 }
-
-                Spacer()
-
                 Button(action: { dismiss() }) {
                     Text("Done")
                         .font(.headline).foregroundColor(.appBackground)
                         .frame(maxWidth: .infinity).frame(height: 52)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.appLabel))
                 }
+                .padding(24)
             }
-            .padding(24)
         }
         .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
     }
@@ -209,7 +199,9 @@ struct LanguageSheet: View {
     var body: some View {
         ZStack {
             Color.appSheetBackground.ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(spacing: 0) {
+                ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
                 Text("Language")
                     .font(.title2).bold().foregroundColor(.appLabel)
                     .padding(.top, 16)
@@ -250,17 +242,17 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
                 }
 
-                Spacer(minLength: 16)
-
+                }
+                .padding(24)
+                } // ScrollView
                 Button(action: { dismiss() }) {
                     Text("Done")
                         .font(.headline).foregroundColor(.appBackground)
                         .frame(maxWidth: .infinity).frame(height: 52)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.appLabel))
                 }
+                .padding(24)
             }
-            .padding(24)
-            .padding(.bottom, 8)
         }
         .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
     }
