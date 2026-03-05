@@ -217,11 +217,13 @@ class ChatViewModel: ObservableObject {
     private func stopUserSpeaking() {
         silenceTimer?.invalidate()
         silenceTimer = nil
-        relayService.stopMic()
-        AudioServicesPlaySystemSound(1114) // iOS recording stop sound
         chatState = .idle
+        AudioServicesPlaySystemSound(1114) // iOS recording stop sound — play before stopMic closes audio session
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.resumeWakeWord()
+            self?.relayService.stopMic()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.resumeWakeWord()
+            }
         }
     }
 }
