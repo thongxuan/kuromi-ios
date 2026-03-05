@@ -37,6 +37,7 @@ class ChatViewModel: ObservableObject {
     private var stopTimeoutTimer: Timer?
     private var isStopping: Bool = false      // true between stopChat() and finalizeStop()
     private var ignoreNextTTSEnd: Bool = false
+    private var pendingWakeWordResume: Bool = false  // resume wake word after TTS end/timeout
 
     // MARK: - Init
 
@@ -97,6 +98,7 @@ class ChatViewModel: ObservableObject {
         stopTimeoutTimer = nil
         isStopping = false
         ignoreNextTTSEnd = false
+        pendingWakeWordResume = false
 
         wakeWordService.stop()
         chatState = .userSpeaking
@@ -132,15 +134,23 @@ class ChatViewModel: ObservableObject {
     }
 
     /// Called when stop sequence is fully done — re-enable wake word
-    private func finalizeStop(fromTTSEnd: Bool = false) {
+    private func finalizeStop(fromTTSEnd: Bool = false, fromMicStop: Bool = false) {
         stopTimeoutTimer?.invalidate()
         stopTimeoutTimer = nil
         isStopping = false
-        if !fromTTSEnd { ignoreNextTTSEnd = true }  // block any late-arriving tts_end
         chatState = .idle
         inputLevel = 0.0
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.resumeWakeWord()
+
+        if fromMicStop {
+            // TTS might still be coming — mark pending, resume after TTS end
+            ignoreNextTTSEnd = true
+            pendingWakeWordResume = true
+        } else {
+            // fromTTSEnd or timeout — safe to resume now
+            pendingWakeWordResume = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.resumeWakeWord()
+            }
         }
     }
 
@@ -227,6 +237,13 @@ class ChatViewModel: ObservableObject {
                     self.ignoreNextTTSEnd = false
                     self.chatState = .idle
                     self.inputLevel = 0.0
+                    // Resume wake word now that final TTS has ended
+                    if self.pendingWakeWordResume {
+                        self.pendingWakeWordResume = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                            self?.resumeWakeWord()
+                        }
+                    }
                     return
                 }
                 if self.isStopping {
@@ -249,7 +266,7 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.chatState = .idle
                 self.inputLevel = 0.0
-                if self.isStopping { self.finalizeStop() }
+                if self.isStopping { self.finalizeStop(fromMicStop: true) }
             }
         }
 
