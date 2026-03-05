@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Combine
+import UIKit
 
 enum ChatState: Equatable {
     case connecting
@@ -36,6 +37,7 @@ class ChatViewModel: ObservableObject {
     private var transcriptStableCount: Int = 0
     private var accumulatedText: String = ""
     @Published var showReconnectButton: Bool = false
+    @Published var reconnectAttemptCount: Int = 0
     @Published var isLoudSpeaker: Bool = UserDefaults.standard.object(forKey: "kuromi_loud_speaker") == nil ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
 
     init() {
@@ -50,6 +52,14 @@ class ChatViewModel: ObservableObject {
         relayService?.connect(gatewayURL: settings.gatewayURL,
                               language: settings.sttLanguage,
                               voice: settings.ttsVoice)
+
+        // Foreground observer — reconnect relay when app becomes active
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.relayService?.appDidBecomeActive()
+            }
+            .store(in: &cancellables)
 
         // On-device services vẫn khởi tạo nhưng không dùng trong relay mode
         deepgramService = STTService(apiKey: settings.activeSSTConfig.apiKey, language: settings.sttLanguage)
@@ -211,6 +221,13 @@ class ChatViewModel: ObservableObject {
                 self?.chatState = .idle
                 self?.isToggleEnabled = true
                 self?.showReconnectButton = false
+                self?.reconnectAttemptCount = 0
+            }
+        }
+        relayService?.onDisconnected = { [weak self] in
+            DispatchQueue.main.async {
+                self?.chatState = .connecting
+                self?.isToggleEnabled = false
             }
         }
         relayService?.onTranscript = { [weak self] text, isFinal in

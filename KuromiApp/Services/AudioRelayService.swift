@@ -7,6 +7,15 @@ class AudioRelayService: NSObject, ObservableObject {
     @Published var isListening = false
     @Published var isPlayingTTS = false
 
+    var onDisconnected: (() -> Void)?
+
+    private var gatewayURL: String = ""
+    private var sttLanguage: String = "vi"
+    private var ttsVoice: String = "NF"
+    private var reconnectTimer: Timer?
+    private var reconnectAttempts = 0
+    private let maxReconnectDelay: TimeInterval = 30
+
     var onTranscript: ((String, Bool) -> Void)?
     var onAIText: ((String) -> Void)?
     var onTTSStart: (() -> Void)?
@@ -26,12 +35,23 @@ class AudioRelayService: NSObject, ObservableObject {
 
     // MARK: - Connect
     func connect(gatewayURL: String, language: String, voice: String) {
+        self.gatewayURL = gatewayURL
+        self.sttLanguage = language
+        self.ttsVoice = voice
+        reconnectAttempts = 0
+        reconnectTimer?.invalidate()
+        reconnectTimer = nil
+        doConnect()
+    }
+
+    private func doConnect() {
         // Derive audio relay URL: append /audio to gateway URL
         var relayURL = gatewayURL
         if relayURL.hasSuffix("/") { relayURL = String(relayURL.dropLast()) }
         relayURL += "/audio"
         guard let url = URL(string: relayURL) else { return }
 
+        ws?.cancel()
         urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: .main)
         ws = urlSession?.webSocketTask(with: url)
         ws?.resume()
@@ -39,8 +59,35 @@ class AudioRelayService: NSObject, ObservableObject {
         receive()
 
         // Send start config
-        sendJSON(["type": "start", "language": language, "voice": voice])
+        sendJSON(["type": "start", "language": sttLanguage, "voice": ttsVoice])
         print("[relay] connected to \(relayURL)")
+    }
+
+    func reconnect() {
+        guard !gatewayURL.isEmpty else { return }
+        stopMic()
+        doConnect()
+        print("[relay] manual reconnect")
+    }
+
+    private func scheduleReconnect() {
+        guard !gatewayURL.isEmpty else { return }
+        reconnectTimer?.invalidate()
+        reconnectAttempts += 1
+        let delay = min(Double(reconnectAttempts) * 2.0, maxReconnectDelay)
+        print("[relay] reconnecting in \(delay)s (attempt \(reconnectAttempts))")
+        reconnectTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            guard let self = self, !self.isConnected else { return }
+            self.doConnect()
+        }
+    }
+
+    func appDidBecomeActive() {
+        guard !gatewayURL.isEmpty, !isConnected else { return }
+        reconnectAttempts = 0
+        reconnectTimer?.invalidate()
+        doConnect()
+        print("[relay] app became active, reconnecting")
     }
 
     func disconnect() {
@@ -104,7 +151,12 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.receive() // loop
             case .failure(let err):
                 print("[relay] receive error: \(err)")
-                DispatchQueue.main.async { self.isConnected = false }
+                DispatchQueue.main.async {
+                    self.isConnected = false
+                    self.isListening = false
+                    self.onDisconnected?()
+                    self.scheduleReconnect()
+                }
             }
         }
     }
