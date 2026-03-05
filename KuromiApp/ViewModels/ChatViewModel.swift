@@ -212,6 +212,8 @@ class ChatViewModel: ObservableObject {
         relayService.stopMic()
         AudioServicesPlaySystemSound(1114) // iOS recording stop sound
         chatState = .idle
-        resumeWakeWord()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.resumeWakeWord()
+        }
     }
 }
