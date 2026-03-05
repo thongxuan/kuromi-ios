@@ -19,6 +19,7 @@
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */; };
 		WW000001 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW100001 /* WakeWordService.swift */; };
 		AC000001 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC100001 /* AppColors.swift */; };
+		OD000001 /* OnDeviceSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = OD100001 /* OnDeviceSTTService.swift */; };
 		FM000001 /* FuzzyMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = FM100001 /* FuzzyMatch.swift */; };
 /* End PBXBuildFile section */
 
@@ -35,6 +36,7 @@
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRelayService.swift; sourceTree = "<group>"; };
 		WW100001 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
 		AC100001 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		OD100001 /* OnDeviceSTTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceSTTService.swift; sourceTree = "<group>"; };
 		FM100001 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
 		AA200001 /* KuromiApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KuromiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA200002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 				AA100011 /* GatewayService.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */,
 				WW100001 /* WakeWordService.swift */,
+				OD100001 /* OnDeviceSTTService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -207,6 +210,7 @@
 				AA000011 /* GatewayService.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */,
 				WW000001 /* WakeWordService.swift in Sources */,
+				OD000001 /* OnDeviceSTTService.swift in Sources */,
 				AC000001 /* AppColors.swift in Sources */,
 				FM000001 /* FuzzyMatch.swift in Sources */,
 			);
