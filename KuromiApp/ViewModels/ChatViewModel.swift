@@ -33,6 +33,7 @@ class ChatViewModel: ObservableObject {
     private var accumulatedText: String = ""
     private var sessionStopped: Bool = false      // true after stop phrase — ignore new AI events
     private var stopTimeoutTimer: Timer?           // 5s fallback to fully reset
+    private var ignoreNextTTSEnd: Bool = false    // true after timeout/mic_stop finalize — block late TTS end
 
     init() {
         settings = AppSettings.load()!
@@ -101,9 +102,14 @@ class ChatViewModel: ObservableObject {
         relayService.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                // Already finalized via timeout or mic_stop — ignore this late TTS end
+                if self.ignoreNextTTSEnd {
+                    self.ignoreNextTTSEnd = false
+                    return
+                }
                 // If stopped, this is the last response — fully reset
                 if self.sessionStopped {
-                    self.finalizeStop()
+                    self.finalizeStop(fromTTSEnd: true)
                     return
                 }
                 self.chatState = .idle
@@ -217,6 +223,7 @@ class ChatViewModel: ObservableObject {
         stopTimeoutTimer?.invalidate()
         stopTimeoutTimer = nil
         sessionStopped = false
+        ignoreNextTTSEnd = false
         wakeWordService.stop()
         chatState = .userSpeaking
         currentTranscript = ""
@@ -248,13 +255,14 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func finalizeStop() {
+    private func finalizeStop(fromTTSEnd: Bool = false) {
         stopTimeoutTimer?.invalidate()
         stopTimeoutTimer = nil
         sessionStopped = false
+        // If not triggered by TTS end, a TTS end might still arrive late — ignore it
+        if !fromTTSEnd { ignoreNextTTSEnd = true }
         chatState = .idle
         inputLevel = 0.0
-        // Delay wake word longer — let TTS audio session fully close first
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.resumeWakeWord()
         }
