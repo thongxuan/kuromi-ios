@@ -201,7 +201,10 @@ class ChatViewModel: ObservableObject {
                 let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
                 if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                     print("[chat] stop phrase: '\(text)'")
-                    if !text.isEmpty { self.messages.append(Message(role: .user, text: text)) }
+                    // Only add to chat once (isFinal), avoid duplicates from partial+final
+                    if isFinal && !text.isEmpty && !self.isStopping {
+                        self.messages.append(Message(role: .user, text: text))
+                    }
                     self.currentTranscript = ""
                     self.inputLevel = 0.0
                     self.stopChat()
