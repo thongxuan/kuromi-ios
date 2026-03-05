@@ -185,11 +185,18 @@ class ChatViewModel: ObservableObject {
 
     private func startUserSpeaking(playBeep: Bool = false) {
         wakeWordService.stop()
-        if playBeep { AudioServicesPlaySystemSound(1057) } // "Tock" — short, clean
         chatState = .userSpeaking
         currentTranscript = ""
         accumulatedText = ""
-        relayService.startMic()
+        if playBeep {
+            AudioServicesPlaySystemSound(1057) // "Tock" — short, clean
+            // Delay mic start slightly so beep isn't cut off by audio session switch
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.relayService.startMic()
+            }
+        } else {
+            relayService.startMic()
+        }
     }
 
     private func stopUserSpeaking() {
