@@ -82,7 +82,7 @@ struct SetupView: View {
         // Gateway sheet
         .sheet(isPresented: $showGatewaySheet) {
             GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
-                .presentationDetents([.medium])
+                .presentationDetents([.height(320)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.appSheetBackground)
                 .presentationBackgroundInteraction(.disabled)
@@ -94,7 +94,7 @@ struct SetupView: View {
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.height(480)])
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.appSheetBackground)
             .presentationBackgroundInteraction(.disabled)
@@ -165,7 +165,7 @@ struct GatewaySheet: View {
             VStack(alignment: .leading, spacing: 24) {
                 Text("Gateway")
                     .font(.title2).bold().foregroundColor(.appLabel)
-                    .padding(.top, 8)
+                    .padding(.top, 16)
 
                 VStack(spacing: 16) {
                     KuromiTextField(
@@ -212,7 +212,7 @@ struct LanguageSheet: View {
             VStack(alignment: .leading, spacing: 24) {
                 Text("Language")
                     .font(.title2).bold().foregroundColor(.appLabel)
-                    .padding(.top, 8)
+                    .padding(.top, 16)
 
                 VStack(spacing: 16) {
                     // Language picker — same shell as KuromiTextField
