@@ -133,7 +133,7 @@ struct ChatView: View {
             switch viewModel.chatState {
             case .connecting: return "Connecting to gateway…"
             case .idle: return "Tap to speak or say \"\(AppSettings.load()?.wakeWord ?? "hey kuromi")\""
-            case .userSpeaking: return viewModel.currentTranscript.isEmpty ? "" : viewModel.currentTranscript
+            case .userSpeaking: return ""
             case .aiSpeaking: return ""
             case .error(let msg): return msg
             }
