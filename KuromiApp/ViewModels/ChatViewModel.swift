@@ -58,6 +58,13 @@ class ChatViewModel: ObservableObject {
         relayService.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                // Stop phrase check — handled entirely on iOS
+                let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
+                if !sp.isEmpty && text.lowercased().contains(sp) {
+                    print("[chat] stop phrase detected: '\(text)'")
+                    self.stopUserSpeaking()
+                    return
+                }
                 if isFinal && !text.isEmpty {
                     self.messages.append(Message(role: .user, text: text))
                     self.currentTranscript = ""
@@ -98,13 +105,7 @@ class ChatViewModel: ObservableObject {
             }
         }
 
-        relayService.onStopPhrase = { [weak self] in
-            DispatchQueue.main.async {
-                self?.stopUserSpeaking()
-            }
-        }
-
-        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, stopPhrase: settings.stopPhrase)
+        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken)
         setupWakeWord()
     }
 
