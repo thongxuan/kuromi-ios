@@ -93,7 +93,7 @@ class ChatViewModel: ObservableObject {
             }
         }
 
-        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF")
+        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken)
     }
 
     private func observeForeground() {
