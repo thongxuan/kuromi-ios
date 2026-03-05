@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 import UIKit
+import AudioToolbox
 
 enum ChatState: Equatable {
     case connecting
@@ -137,7 +138,7 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self, case .idle = self.chatState, self.isToggleEnabled else { return }
                 self.wakeWordService.stop()
-                self.startUserSpeaking()
+                self.startUserSpeaking(playBeep: true)
             }
         }
         wakeWordService.start(language: settings.sttLanguage)
@@ -185,8 +186,9 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func startUserSpeaking() {
+    private func startUserSpeaking(playBeep: Bool = false) {
         wakeWordService.stop()
+        if playBeep { AudioServicesPlaySystemSound(1057) } // "Tock" — short, clean
         chatState = .userSpeaking
         currentTranscript = ""
         accumulatedText = ""
