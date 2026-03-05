@@ -190,7 +190,7 @@ class ChatViewModel: ObservableObject {
     func toggleSpeaking() {
         switch chatState {
         case .idle, .aiSpeaking:
-            startUserSpeaking()
+            startUserSpeaking(playBeep: true)
         case .userSpeaking:
             stopUserSpeaking()
         default:
