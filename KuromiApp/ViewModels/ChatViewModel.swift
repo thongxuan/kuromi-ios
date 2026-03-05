@@ -62,9 +62,17 @@ class ChatViewModel: ObservableObject {
                 let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
                 if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                     print("[chat] stop phrase detected: '\(text)'")
+                    // Add to conversation first, then stop
+                    if !text.isEmpty {
+                        self.messages.append(Message(role: .user, text: text))
+                    }
+                    self.currentTranscript = ""
+                    self.accumulatedText = ""
                     self.stopUserSpeaking()
                     return
                 }
+                // Ignore transcripts if already stopped (e.g. relay sends final after iOS stop)
+                guard case .userSpeaking = self.chatState else { return }
                 if isFinal && !text.isEmpty {
                     self.messages.append(Message(role: .user, text: text))
                     self.currentTranscript = ""
