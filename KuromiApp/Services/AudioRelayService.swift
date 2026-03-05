@@ -44,6 +44,8 @@ class AudioRelayService: NSObject, ObservableObject {
         doConnect()
     }
 
+    private var isReconnecting = false
+
     private func doConnect() {
         // Derive audio relay URL: append /audio to gateway URL
         var relayURL = gatewayURL
@@ -51,7 +53,11 @@ class AudioRelayService: NSObject, ObservableObject {
         relayURL += "/audio"
         guard let url = URL(string: relayURL) else { return }
 
+        isReconnecting = true
         ws?.cancel()
+        ws = nil
+        isReconnecting = false
+
         urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: .main)
         ws = urlSession?.webSocketTask(with: url)
         ws?.resume()
@@ -164,6 +170,7 @@ class AudioRelayService: NSObject, ObservableObject {
             case .failure(let err):
                 print("[relay] receive error: \(err)")
                 DispatchQueue.main.async {
+                    guard !self.isReconnecting else { return } // ignore cancel from doConnect()
                     self.isConnected = false
                     self.isListening = false
                     self.onDisconnected?()
