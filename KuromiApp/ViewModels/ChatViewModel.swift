@@ -196,7 +196,7 @@ class ChatViewModel: ObservableObject {
         currentTranscript = ""
         accumulatedText = ""
         if playBeep {
-            AudioServicesPlaySystemSound(1057) // "Tock" — short, clean
+            AudioServicesPlaySystemSound(1113) // iOS recording start sound
             // Delay mic start slightly so beep isn't cut off by audio session switch
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 self?.relayService.startMic()
@@ -210,7 +210,7 @@ class ChatViewModel: ObservableObject {
         silenceTimer?.invalidate()
         silenceTimer = nil
         relayService.stopMic()
-        AudioServicesPlaySystemSound(1057) // "Tock" — no vibration
+        AudioServicesPlaySystemSound(1114) // iOS recording stop sound
         chatState = .idle
         resumeWakeWord()
     }
