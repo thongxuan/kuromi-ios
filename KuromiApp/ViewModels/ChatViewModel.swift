@@ -24,6 +24,7 @@ class ChatViewModel: ObservableObject {
         ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
 
     private var relayService = AudioRelayService()
+    private var wakeWordService = WakeWordService()
     private var settings: AppSettings
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
@@ -80,7 +81,11 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.chatState = .idle
                 self.inputLevel = 0.0
-                if self.isToggleEnabled { self.startUserSpeaking() }
+                if self.isToggleEnabled {
+                    self.startUserSpeaking()
+                } else {
+                    self.resumeWakeWord()
+                }
             }
         }
         relayService.onAudioLevel = { [weak self] level in
@@ -88,12 +93,15 @@ class ChatViewModel: ObservableObject {
         }
         relayService.onMicStop = { [weak self] in
             DispatchQueue.main.async {
-                self?.chatState = .idle
-                self?.inputLevel = 0.0
+                guard let self = self else { return }
+                self.chatState = .idle
+                self.inputLevel = 0.0
+                self.resumeWakeWord()
             }
         }
 
         relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken)
+        setupWakeWord()
     }
 
     private func observeForeground() {
@@ -119,6 +127,25 @@ class ChatViewModel: ObservableObject {
 
     func onDisappear() {
         stopUserSpeaking()
+        wakeWordService.stop()
+    }
+
+    private func setupWakeWord() {
+        guard !settings.wakePhrase.isEmpty else { return }
+        wakeWordService.wakePhrase = settings.wakePhrase
+        wakeWordService.onDetected = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self, case .idle = self.chatState, self.isToggleEnabled else { return }
+                self.wakeWordService.stop()
+                self.startUserSpeaking()
+            }
+        }
+        wakeWordService.start(language: settings.sttLanguage)
+    }
+
+    private func resumeWakeWord() {
+        guard !settings.wakePhrase.isEmpty else { return }
+        wakeWordService.start(language: settings.sttLanguage)
     }
 
     func reconnect() {
@@ -159,6 +186,7 @@ class ChatViewModel: ObservableObject {
     }
 
     private func startUserSpeaking() {
+        wakeWordService.stop()
         chatState = .userSpeaking
         currentTranscript = ""
         accumulatedText = ""

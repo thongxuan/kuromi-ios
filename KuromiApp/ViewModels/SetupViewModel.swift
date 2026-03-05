@@ -9,6 +9,7 @@ class SetupViewModel: ObservableObject {
     @Published var gatewayURL: String = ""
     @Published var gatewayToken: String = ""
     @Published var sttLanguage: String = "vi"
+    @Published var wakePhrase: String = "kuromi"
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
@@ -30,6 +31,7 @@ class SetupViewModel: ObservableObject {
             gatewayURL = s.gatewayURL
             gatewayToken = s.gatewayToken
             sttLanguage = s.sttLanguage
+            wakePhrase = s.wakePhrase
         }
     }
 
@@ -43,7 +45,8 @@ class SetupViewModel: ObservableObject {
         let s = AppSettings(
             gatewayURL: gatewayURL.trimmingCharacters(in: .whitespaces),
             gatewayToken: gatewayToken.trimmingCharacters(in: .whitespaces),
-            sttLanguage: sttLanguage
+            sttLanguage: sttLanguage,
+            wakePhrase: wakePhrase.trimmingCharacters(in: .whitespaces).lowercased()
         )
         s.save()
         return s

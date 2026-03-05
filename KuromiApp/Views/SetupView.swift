@@ -76,6 +76,14 @@ struct SetupView: View {
                             )
                         }
                     }
+
+                    // Wake phrase
+                    KuromiTextField(
+                        title: "Wake phrase",
+                        placeholder: "e.g. kuromi",
+                        text: $viewModel.wakePhrase,
+                        icon: "waveform"
+                    )
                 }
                 .padding(.horizontal, 24)
 

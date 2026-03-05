@@ -4,6 +4,7 @@ struct AppSettings: Codable {
     var gatewayURL: String
     var gatewayToken: String
     var sttLanguage: String = "vi"
+    var wakePhrase: String = "kuromi"
 
     static let defaultsKey = "kuromi_settings"
 
