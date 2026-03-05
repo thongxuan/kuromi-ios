@@ -8,7 +8,7 @@ struct KuromiApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(nil) // follow system
         }
     }
 }
