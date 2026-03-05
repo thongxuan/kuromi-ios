@@ -373,6 +373,7 @@ class ChatViewModel: ObservableObject {
 
         if let relay = relayService {
             relay.stopMic()
+            chatState = .idle
         } else {
             audioService.stopRecording()
             deepgramService?.disconnect()

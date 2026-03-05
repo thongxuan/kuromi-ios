@@ -139,10 +139,11 @@ class AudioRelayService: NSObject, ObservableObject {
     }
 
     func stopMic() {
-        guard isListening else { return }
-        audioEngine.inputNode.removeTap(onBus: 0)
-        audioEngine.stop()
-        isListening = false
+        if isListening {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            audioEngine.stop()
+            isListening = false
+        }
         sendJSON(["type": "stop"])
     }
 
