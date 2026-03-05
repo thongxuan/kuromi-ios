@@ -91,7 +91,7 @@ struct ChatView: View {
 
             // Speaker toggle
             Button(action: { viewModel.toggleSpeaker() }) {
-                Image(systemName: viewModel.isLoudSpeaker ? "speaker.wave.3.fill" : "speaker.fill")
+                Image(systemName: "speaker.wave.2.fill")
                     .font(.body)
                     .foregroundColor(viewModel.isLoudSpeaker ? .purple : .gray)
             }
