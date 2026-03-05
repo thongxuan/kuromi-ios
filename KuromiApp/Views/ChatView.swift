@@ -363,7 +363,7 @@ struct TranscriptBubble: View {
 
     var body: some View {
         HStack {
-            if message.role == .assistant { Spacer() }
+            if message.role == .user { Spacer() }
 
             Text(message.text)
                 .font(.subheadline)
@@ -376,9 +376,9 @@ struct TranscriptBubble: View {
                               ? Color.white.opacity(0.08)
                               : Color.purple.opacity(0.12))
                 )
-                .frame(maxWidth: 280, alignment: message.role == .user ? .leading : .trailing)
+                .frame(maxWidth: 280, alignment: message.role == .user ? .trailing : .leading)
 
-            if message.role == .user { Spacer() }
+            if message.role == .assistant { Spacer() }
         }
         .opacity(opacity)
         .animation(.easeInOut(duration: 0.3), value: opacity)
