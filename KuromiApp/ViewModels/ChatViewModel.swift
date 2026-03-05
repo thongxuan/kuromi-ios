@@ -230,8 +230,8 @@ class ChatViewModel: ObservableObject {
         accumulatedText = ""
         if playBeep {
             AudioServicesPlaySystemSound(1113) // iOS recording start sound
-            // Delay mic start slightly so beep isn't cut off by audio session switch
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            // Delay mic start so sound plays fully before audio session switches
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 self?.relayService.startMic()
             }
         } else {
