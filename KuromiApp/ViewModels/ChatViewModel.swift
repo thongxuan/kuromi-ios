@@ -60,7 +60,7 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 // Stop phrase check — handled entirely on iOS
                 let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
-                if !sp.isEmpty && text.lowercased().contains(sp) {
+                if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                     print("[chat] stop phrase detected: '\(text)'")
                     self.stopUserSpeaking()
                     return

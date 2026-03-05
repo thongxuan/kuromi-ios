@@ -93,7 +93,7 @@ class WakeWordService: ObservableObject {
             if let result = result {
                 let text = result.bestTranscription.formattedString.lowercased()
                 print("[wake] heard: '\(text)' (isFinal=\(result.isFinal))")
-                if text.contains(self.wakePhrase.lowercased()) {
+                if fuzzyContains(text, phrase: self.wakePhrase, threshold: 0.7) {
                     print("[wake] ✅ wake phrase detected!")
                     DispatchQueue.main.async { self.onDetected?() }
                     self.scheduleRestart(language: language, after: 2.0)
