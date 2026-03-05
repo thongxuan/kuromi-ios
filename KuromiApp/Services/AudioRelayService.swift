@@ -22,6 +22,7 @@ class AudioRelayService: NSObject, ObservableObject {
     private var sttLanguage = "vi"
     private var ttsVoice = "NF"
     private var gatewayToken = ""
+    private var textMode = false
 
     private var ws: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -38,11 +39,12 @@ class AudioRelayService: NSObject, ObservableObject {
 
     // MARK: - Connect / Disconnect
 
-    func connect(gatewayURL: String, language: String, voice: String, token: String = "") {
+    func connect(gatewayURL: String, language: String, voice: String, token: String = "", textMode: Bool = false) {
         self.gatewayURL = gatewayURL
         self.sttLanguage = language
         self.ttsVoice = voice
         self.gatewayToken = token
+        self.textMode = textMode
         reconnectAttempts = 0
         reconnectTimer?.invalidate()
         doConnect()
@@ -70,7 +72,7 @@ class AudioRelayService: NSObject, ObservableObject {
         isConnected = true
         receive()
 
-        var startMsg: [String: String] = ["type": "start", "language": sttLanguage, "voice": ttsVoice]
+        var startMsg: [String: String] = ["type": textMode ? "start_text" : "start", "language": sttLanguage, "voice": ttsVoice]
         if !gatewayToken.isEmpty { startMsg["token"] = gatewayToken }
         sendJSON(startMsg)
         print("[relay] connected → \(url)")
@@ -147,6 +149,10 @@ class AudioRelayService: NSObject, ObservableObject {
         audioEngine.stop()
         isListening = false
         print("[relay] mic stopped")
+    }
+
+    func sendTranscript(_ text: String) {
+        sendJSON(["type": "transcript", "text": text])
     }
 
     // MARK: - Receive

@@ -92,7 +92,8 @@ struct SetupView: View {
             LanguageSheet(
                 sttLanguage: $viewModel.sttLanguage,
                 wakePhrase: $viewModel.wakePhrase,
-                stopPhrase: $viewModel.stopPhrase
+                stopPhrase: $viewModel.stopPhrase,
+                useOnDeviceSTT: $viewModel.useOnDeviceSTT
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -194,6 +195,7 @@ struct LanguageSheet: View {
     @Binding var sttLanguage: String
     @Binding var wakePhrase: String
     @Binding var stopPhrase: String
+    @Binding var useOnDeviceSTT: Bool
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -240,6 +242,23 @@ struct LanguageSheet: View {
 
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
+
+                    Toggle(isOn: $useOnDeviceSTT) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("On-device STT")
+                                .font(.body).foregroundColor(.appLabel)
+                            Text("iPhone 12+ only (A14 chip or later)")
+                                .font(.caption2).foregroundColor(.appSecondaryLabel)
+                        }
+                    }
+                    .tint(.purple)
+                    .padding(.horizontal, 16).frame(height: 64)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.appFieldBackground)
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.appBorder, lineWidth: 1))
+                    )
                 }
 
                 }

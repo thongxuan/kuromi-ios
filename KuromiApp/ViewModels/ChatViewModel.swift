@@ -31,7 +31,9 @@ class ChatViewModel: ObservableObject {
 
     private var relayService = AudioRelayService()
     private var wakeWordService = WakeWordService()
+    private var onDeviceSTTService = OnDeviceSTTService()
     private var settings: AppSettings
+    private var isTextMode: Bool { settings.useOnDeviceSTT }
     var wakePhrase: String { settings.wakePhrase }
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
@@ -63,6 +65,7 @@ class ChatViewModel: ObservableObject {
 
     func onDisappear() {
         stopChat()
+        onDeviceSTTService.stop()
         wakeWordService.stop()
     }
 
@@ -109,10 +112,19 @@ class ChatViewModel: ObservableObject {
         if beep {
             AudioServicesPlaySystemSound(1113) // begin_record.caf
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                self?.relayService.startMic()
+                guard let self = self else { return }
+                if self.isTextMode {
+                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                } else {
+                    self.relayService.startMic()
+                }
             }
         } else {
-            relayService.startMic()
+            if isTextMode {
+                onDeviceSTTService.start(language: settings.sttLanguage)
+            } else {
+                relayService.startMic()
+            }
         }
     }
 
@@ -124,15 +136,28 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         AudioServicesPlaySystemSound(1114) // end_record.caf
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.relayService.stopMic()
-        }
-        // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
-        stopTimeoutTimer?.invalidate()
-        stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-            guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
-            self.pendingWakeWordResume = false
-            self.finalizeStop()
+
+        if isTextMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                guard let self = self else { return }
+                self.onDeviceSTTService.stop()
+                // No relay mic/mic_stop — finalize immediately
+                self.isStopping = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.resumeWakeWord()
+                }
+            }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                self?.relayService.stopMic()
+            }
+            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
+            stopTimeoutTimer?.invalidate()
+            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
+                self.pendingWakeWordResume = false
+                self.finalizeStop()
+            }
         }
     }
 
@@ -277,8 +302,48 @@ class ChatViewModel: ObservableObject {
             }
         }
 
-        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken)
+        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, textMode: settings.useOnDeviceSTT)
+        if isTextMode { setupOnDeviceSTT() }
         setupWakeWord()
+    }
+
+    // MARK: - On-Device STT
+
+    private func setupOnDeviceSTT() {
+        onDeviceSTTService.onTranscript = { [weak self] text, isFinal in
+            guard let self = self else { return }
+            // Stop phrase check
+            let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
+            if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
+                print("[chat] stop phrase (on-device): '\(text)'")
+                self.onDeviceSTTService.stop()
+                self.currentTranscript = ""
+                self.inputLevel = 0.0
+                self.stopChat()
+                return
+            }
+            guard case .userSpeaking = self.chatState else { return }
+            if !isFinal {
+                self.currentTranscript = text
+            }
+        }
+
+        onDeviceSTTService.onAudioLevel = { [weak self] level in
+            self?.inputLevel = level
+        }
+
+        onDeviceSTTService.onFinalTranscript = { [weak self] text in
+            guard let self = self, case .userSpeaking = self.chatState else { return }
+            self.onDeviceSTTService.stop()
+            self.chatState = .idle
+            self.inputLevel = 0.0
+            self.currentTranscript = ""
+            if !text.isEmpty {
+                self.messages.append(Message(role: .user, text: text))
+            }
+            self.relayService.sendTranscript(text)
+            // Relay will respond with mic_stop + TTS via existing handlers
+        }
     }
 
     // MARK: - Audio Session
