@@ -3,6 +3,7 @@ import Foundation
 struct AppSettings: Codable {
     var gatewayURL: String
     var gatewayToken: String
+    var sttLanguage: String = "vi"
 
     static let defaultsKey = "kuromi_settings"
 

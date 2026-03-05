@@ -8,15 +8,28 @@ enum ValidationState {
 class SetupViewModel: ObservableObject {
     @Published var gatewayURL: String = ""
     @Published var gatewayToken: String = ""
+    @Published var sttLanguage: String = "vi"
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
+
+    static let languages: [(code: String, name: String, flag: String)] = [
+        ("vi", "Tiếng Việt", "🇻🇳"),
+        ("en", "English", "🇺🇸"),
+        ("ja", "日本語", "🇯🇵"),
+        ("zh", "中文", "🇨🇳"),
+        ("ko", "한국어", "🇰🇷"),
+        ("fr", "Français", "🇫🇷"),
+        ("de", "Deutsch", "🇩🇪"),
+        ("es", "Español", "🇪🇸"),
+    ]
 
     init(isEditMode: Bool = false) {
         self.isEditMode = isEditMode
         if let s = AppSettings.load() {
             gatewayURL = s.gatewayURL
             gatewayToken = s.gatewayToken
+            sttLanguage = s.sttLanguage
         }
     }
 
@@ -29,7 +42,8 @@ class SetupViewModel: ObservableObject {
         errorMessage = ""
         let s = AppSettings(
             gatewayURL: gatewayURL.trimmingCharacters(in: .whitespaces),
-            gatewayToken: gatewayToken.trimmingCharacters(in: .whitespaces)
+            gatewayToken: gatewayToken.trimmingCharacters(in: .whitespaces),
+            sttLanguage: sttLanguage
         )
         s.save()
         return s

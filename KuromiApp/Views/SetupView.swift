@@ -43,7 +43,39 @@ struct SetupView: View {
                         isSecure: true
                     )
 
-                    // STT/TTS handled by relay — no provider config needed
+                    // Language picker
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "globe")
+                                .font(.caption).foregroundColor(.purple)
+                            Text("Ngôn ngữ")
+                                .font(.caption).fontWeight(.medium).foregroundColor(.gray)
+                        }
+                        Menu {
+                            ForEach(SetupViewModel.languages, id: \.code) { lang in
+                                Button(action: { viewModel.sttLanguage = lang.code }) {
+                                    Label("\(lang.flag) \(lang.name)", systemImage: viewModel.sttLanguage == lang.code ? "checkmark" : "")
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                let current = SetupViewModel.languages.first { $0.code == viewModel.sttLanguage }
+                                Text("\(current?.flag ?? "🌐") \(current?.name ?? viewModel.sttLanguage)")
+                                    .foregroundColor(.white).font(.body)
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption).foregroundColor(.gray)
+                            }
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.07))
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                            )
+                        }
+                    }
                 }
                 .padding(.horizontal, 24)
 
