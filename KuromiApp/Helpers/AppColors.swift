@@ -2,16 +2,16 @@ import SwiftUI
 
 extension Color {
     // Backgrounds
-    static let appBackground = Color(.systemBackground)
-    static let appSheetBackground = Color(.secondarySystemBackground)
-    static let appFieldBackground = Color(.tertiarySystemBackground)
+    static let appBackground = Color(UIColor.systemBackground)
+    static let appSheetBackground = Color(UIColor.secondarySystemBackground)
+    static let appFieldBackground = Color(UIColor.tertiarySystemBackground)
 
     // Text
-    static let appLabel = Color(.label)
-    static let appSecondaryLabel = Color(.secondaryLabel)
+    static let appLabel = Color(UIColor.label)
+    static let appSecondaryLabel = Color(UIColor.secondaryLabel)
 
     // Borders
-    static let appBorder = Color(.separator)
+    static let appBorder = Color(UIColor.separator)
 
     // Accent (stays purple in both modes)
     static let appAccent = Color.purple
