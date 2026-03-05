@@ -129,7 +129,9 @@ class ChatViewModel: ObservableObject {
         // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
         stopTimeoutTimer?.invalidate()
         stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-            self?.finalizeStop()
+            guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
+            self.pendingWakeWordResume = false
+            self.finalizeStop()
         }
     }
 
@@ -237,9 +239,10 @@ class ChatViewModel: ObservableObject {
                     self.ignoreNextTTSEnd = false
                     self.chatState = .idle
                     self.inputLevel = 0.0
-                    // Resume wake word now that final TTS has ended
                     if self.pendingWakeWordResume {
                         self.pendingWakeWordResume = false
+                        self.stopTimeoutTimer?.invalidate()   // cancel 5s timer — this path wins
+                        self.stopTimeoutTimer = nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                             self?.resumeWakeWord()
                         }
