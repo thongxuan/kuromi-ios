@@ -7,10 +7,12 @@ struct SetupView: View {
         _viewModel = StateObject(wrappedValue: SetupViewModel(isEditMode: isEditMode))
     }
 
+    @State private var showGatewaySheet = false
+    @State private var showLanguageSheet = false
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-                .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
 
             VStack(spacing: 32) {
                 // Header
@@ -24,72 +26,22 @@ struct SetupView: View {
                 }
                 .padding(.top, 48)
 
-                // Fields
-                VStack(spacing: 16) {
-                    KuromiTextField(
-                        title: "Gateway URL",
-                        placeholder: "ws://192.168.1.1:18789",
-                        text: $viewModel.gatewayURL,
-                        icon: "antenna.radiowaves.left.and.right"
-                    )
+                // Setting rows
+                VStack(spacing: 12) {
+                    SettingRow(
+                        icon: "antenna.radiowaves.left.and.right",
+                        title: "Gateway",
+                        value: viewModel.gatewayURL.isEmpty ? "Not configured" : viewModel.gatewayURL
+                    ) { showGatewaySheet = true }
 
-                    KuromiTextField(
-                        title: "Gateway Token",
-                        placeholder: "leave empty if no auth",
-                        text: $viewModel.gatewayToken,
-                        icon: "key.fill",
-                        isSecure: true
-                    )
-
-                    // Language picker
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "globe")
-                                .font(.caption).foregroundColor(.purple)
-                            Text("Language")
-                                .font(.caption).fontWeight(.medium).foregroundColor(.gray)
-                        }
-                        Menu {
-                            ForEach(SetupViewModel.languages, id: \.code) { lang in
-                                Button(action: { viewModel.sttLanguage = lang.code }) {
-                                    Label("\(lang.flag) \(lang.name)", systemImage: viewModel.sttLanguage == lang.code ? "checkmark" : "")
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                let current = SetupViewModel.languages.first { $0.code == viewModel.sttLanguage }
-                                Text("\(current?.flag ?? "🌐") \(current?.name ?? viewModel.sttLanguage)")
-                                    .foregroundColor(.white).font(.body)
-                                Spacer()
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption).foregroundColor(.gray)
-                            }
-                            .padding(.horizontal, 16)
-                            .frame(height: 52)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white.opacity(0.07))
-                                    .overlay(RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
-                            )
-                        }
-                    }
-
-                    // Wake phrase
-                    KuromiTextField(
-                        title: "Wake phrase",
-                        placeholder: "e.g. kuromi",
-                        text: $viewModel.wakePhrase,
-                        icon: "waveform"
-                    )
-
-                    // Stop phrase
-                    KuromiTextField(
-                        title: "Stop phrase",
-                        placeholder: "e.g. dừng lại",
-                        text: $viewModel.stopPhrase,
-                        icon: "stop.circle"
-                    )
+                    SettingRow(
+                        icon: "globe",
+                        title: "Language",
+                        value: {
+                            let lang = SetupViewModel.languages.first { $0.code == viewModel.sttLanguage }
+                            return "\(lang?.flag ?? "🌐") \(lang?.name ?? viewModel.sttLanguage)"
+                        }()
+                    ) { showLanguageSheet = true }
                 }
                 .padding(.horizontal, 24)
 
@@ -106,29 +58,20 @@ struct SetupView: View {
                     Button(action: continueAction) {
                         HStack {
                             Text(viewModel.isEditMode ? "Save" : "Continue")
-                                .font(.headline)
-                                .foregroundColor(.black)
+                                .font(.headline).foregroundColor(.black)
                             Spacer()
-                            Image(systemName: "arrow.right")
-                                .foregroundColor(.black)
+                            Image(systemName: "arrow.right").foregroundColor(.black)
                         }
                         .padding(.horizontal, 24)
                         .frame(height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white)
-                        )
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
                     }
                     .disabled(!viewModel.canContinue)
                     .opacity(viewModel.canContinue ? 1.0 : 0.4)
 
                     if viewModel.isEditMode {
-                        Button("Cancel") {
-                            appState.closeSetupEdit()
-                        }
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .frame(height: 44)
+                        Button("Cancel") { appState.closeSetupEdit() }
+                            .font(.headline).foregroundColor(.gray).frame(height: 44)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -136,6 +79,22 @@ struct SetupView: View {
             }
         }
         .safeAreaPadding()
+        // Gateway sheet
+        .sheet(isPresented: $showGatewaySheet) {
+            GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        // Language sheet
+        .sheet(isPresented: $showLanguageSheet) {
+            LanguageSheet(
+                sttLanguage: $viewModel.sttLanguage,
+                wakePhrase: $viewModel.wakePhrase,
+                stopPhrase: $viewModel.stopPhrase
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private func continueAction() {
@@ -144,6 +103,164 @@ struct SetupView: View {
     }
 }
 
+// MARK: - Setting Row
+
+struct SettingRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundColor(.purple)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text(value)
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.gray.opacity(0.6))
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 64)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+            )
+        }
+    }
+}
+
+// MARK: - Gateway Sheet
+
+struct GatewaySheet: View {
+    @Binding var gatewayURL: String
+    @Binding var gatewayToken: String
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Gateway")
+                    .font(.title2).bold().foregroundColor(.white)
+                    .padding(.top, 8)
+
+                VStack(spacing: 16) {
+                    KuromiTextField(
+                        title: "Gateway URL",
+                        placeholder: "ws://192.168.1.1:18789",
+                        text: $gatewayURL,
+                        icon: "antenna.radiowaves.left.and.right"
+                    )
+                    KuromiTextField(
+                        title: "Token",
+                        placeholder: "leave empty if no auth",
+                        text: $gatewayToken,
+                        icon: "key.fill",
+                        isSecure: true
+                    )
+                }
+
+                Spacer()
+
+                Button(action: { dismiss() }) {
+                    Text("Done")
+                        .font(.headline).foregroundColor(.black)
+                        .frame(maxWidth: .infinity).frame(height: 52)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                }
+            }
+            .padding(24)
+        }
+        .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+    }
+}
+
+// MARK: - Language Sheet
+
+struct LanguageSheet: View {
+    @Binding var sttLanguage: String
+    @Binding var wakePhrase: String
+    @Binding var stopPhrase: String
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Language")
+                    .font(.title2).bold().foregroundColor(.white)
+                    .padding(.top, 8)
+
+                VStack(spacing: 16) {
+                    // Language picker
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "globe").font(.caption).foregroundColor(.purple)
+                            Text("Language").font(.caption).fontWeight(.medium).foregroundColor(.gray)
+                        }
+                        Menu {
+                            ForEach(SetupViewModel.languages, id: \.code) { lang in
+                                Button(action: { sttLanguage = lang.code }) {
+                                    Label("\(lang.flag) \(lang.name)", systemImage: sttLanguage == lang.code ? "checkmark" : "")
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                let current = SetupViewModel.languages.first { $0.code == sttLanguage }
+                                Text("\(current?.flag ?? "🌐") \(current?.name ?? sttLanguage)")
+                                    .foregroundColor(.white).font(.body)
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.gray)
+                            }
+                            .padding(.horizontal, 16).frame(height: 52)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.07))
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                            )
+                        }
+                    }
+
+                    KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
+                    KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
+                }
+
+                Spacer()
+
+                Button(action: { dismiss() }) {
+                    Text("Done")
+                        .font(.headline).foregroundColor(.black)
+                        .frame(maxWidth: .infinity).frame(height: 52)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                }
+            }
+            .padding(24)
+        }
+        .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+    }
+}
+
+// MARK: - Text Field
 
 struct KuromiTextField: View {
     let title: String
@@ -167,32 +284,19 @@ struct KuromiTextField: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 if !icon.isEmpty {
-                    Image(systemName: icon)
-                        .font(.caption)
-                        .foregroundColor(.purple)
+                    Image(systemName: icon).font(.caption).foregroundColor(.purple)
                 }
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.gray)
+                Text(title).font(.caption).fontWeight(.medium).foregroundColor(.gray)
                 Spacer()
-                // Validation badge
                 switch validation {
-                case .checking:
-                    ProgressView().scaleEffect(0.7).tint(.gray)
-                case .success:
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.caption)
+                case .checking: ProgressView().scaleEffect(0.7).tint(.gray)
+                case .success: Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.caption)
                 case .failure(let msg):
                     HStack(spacing: 3) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
+                        Image(systemName: "xmark.circle.fill").foregroundColor(.red)
                         Text(msg).foregroundColor(.red)
-                    }
-                    .font(.caption2)
-                case .idle:
-                    EmptyView()
+                    }.font(.caption2)
+                case .idle: EmptyView()
                 }
             }
 
@@ -202,30 +306,24 @@ struct KuromiTextField: View {
                         SecureField(placeholder, text: $text)
                     } else {
                         TextField(placeholder, text: $text)
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
+                            .autocapitalization(.none).autocorrectionDisabled()
                     }
                 }
-                .font(.system(.body, design: .monospaced))
-                .foregroundColor(.white)
+                .font(.system(.body, design: .monospaced)).foregroundColor(.white)
 
                 if isSecure {
                     Button(action: { isRevealed.toggle() }) {
                         Image(systemName: isRevealed ? "eye.slash" : "eye")
-                            .foregroundColor(.gray)
-                            .font(.caption)
+                            .foregroundColor(.gray).font(.caption)
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .frame(height: 52)
+            .padding(.horizontal, 16).frame(height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white.opacity(0.07))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(borderColor, lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(borderColor, lineWidth: 1))
             )
         }
     }
