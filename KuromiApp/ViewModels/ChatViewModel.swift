@@ -107,7 +107,7 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            AudioServicesPlaySystemSound(1075) // "Tink" — clean high click, no vibration
+            AudioServicesPlaySystemSound(1123) // iOS keyboard pressClick sound
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 self?.relayService.startMic()
             }
