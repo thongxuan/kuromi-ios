@@ -164,7 +164,7 @@ struct OrbView: View {
     // Orb scale reactive theo voice level khi user speaking
     private var orbScale: CGFloat {
         switch chatState {
-        case .userSpeaking: return 1.0 + CGFloat(inputLevel) * 3.0
+        case .userSpeaking: return min(1.0 + CGFloat(inputLevel) * 3.0, 1.5)
         default: return 1.0
         }
     }
@@ -319,23 +319,7 @@ struct TranscriptListView: View {
                             .id("ai-live")
                     }
 
-                    // Live transcript cursor
-                    if case .userSpeaking = chatState, !currentTranscript.isEmpty {
-                        HStack(alignment: .bottom, spacing: 0) {
-                            Text(currentTranscript)
-                                .foregroundColor(.white.opacity(0.9))
-                            Text("▌")
-                                .foregroundColor(.purple.opacity(0.7))
-                        }
-                        .font(.subheadline)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.purple.opacity(0.12))
-                        )
-                        .id("live")
-                    }
+                    // Live transcript cursor — hidden per design
                 }
                 .padding(.vertical, 8)
             }
