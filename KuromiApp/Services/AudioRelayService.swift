@@ -111,6 +111,10 @@ class AudioRelayService: NSObject, ObservableObject {
 
     func startMic() {
         guard !isListening else { return }
+        // Use .measurement mode — disables AGC/noise cancellation so mic is more sensitive
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetooth, .allowBluetoothA2DP, .duckOthers])
+        try? session.setActive(true)
         let inputNode = audioEngine.inputNode
         let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
         let nativeFormat = inputNode.outputFormat(forBus: 0)
