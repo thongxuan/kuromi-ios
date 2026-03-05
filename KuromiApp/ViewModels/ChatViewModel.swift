@@ -121,6 +121,10 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.chatState = .idle
                 self.inputLevel = 0.0
+                // If stopped via stop phrase and no TTS expected, finalize immediately
+                if self.sessionStopped {
+                    self.finalizeStop()
+                }
             }
         }
 
@@ -250,7 +254,8 @@ class ChatViewModel: ObservableObject {
         sessionStopped = false
         chatState = .idle
         inputLevel = 0.0
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+        // Delay wake word longer — let TTS audio session fully close first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.resumeWakeWord()
         }
     }
