@@ -49,8 +49,8 @@ class WakeWordService: ObservableObject {
         guard isActive else { print("[wake] not active, skip beginListening"); return }
         teardown()
 
-        let localeId = language == "vi" ? "vi-VN" : "en-US"
-        print("[wake] using locale: \(localeId)")
+        let localeId = WakeWordService.bestLocale(for: wakePhrase, fallback: language)
+        print("[wake] using locale: \(localeId) for phrase '\(wakePhrase)'")
         let locale = Locale(identifier: localeId)
         speechRecognizer = SFSpeechRecognizer(locale: locale)
 
@@ -136,6 +136,23 @@ class WakeWordService: ObservableObject {
             audioEngine.stop()
         }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    /// Pick the best locale based on characters in the phrase
+    static func bestLocale(for phrase: String, fallback language: String) -> String {
+        // Check for Vietnamese-specific characters (tonal diacritics)
+        let vietnameseChars = CharacterSet(charactersIn: "àáâãèéêìíòóôõùúýăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵ"
+            + "ÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐƠƯẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼẾỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỶỸỴ")
+        let hasVietnamese = phrase.unicodeScalars.contains { vietnameseChars.contains($0) }
+        if hasVietnamese { return "vi-VN" }
+
+        // Map language code to locale
+        let map: [String: String] = [
+            "vi": "vi-VN", "en": "en-US", "ja": "ja-JP",
+            "zh": "zh-CN", "ko": "ko-KR", "fr": "fr-FR",
+            "de": "de-DE", "es": "es-ES"
+        ]
+        return map[language] ?? "en-US"
     }
 
     private func scheduleRestart(language: String, after delay: TimeInterval) {
