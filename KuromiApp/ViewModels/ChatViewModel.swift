@@ -210,7 +210,7 @@ class ChatViewModel: ObservableObject {
         silenceTimer?.invalidate()
         silenceTimer = nil
         relayService.stopMic()
-        AudioServicesPlaySystemSound(1054) // "Anticipate" — short descending tone
+        AudioServicesPlaySystemSound(1057) // "Tock" — no vibration
         chatState = .idle
         resumeWakeWord()
     }
