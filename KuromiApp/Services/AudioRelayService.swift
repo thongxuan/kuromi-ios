@@ -55,6 +55,12 @@ class AudioRelayService: NSObject, ObservableObject {
         ws?.cancel(); ws = nil
         isReconnecting = false
 
+        // Reset state on reconnect
+        isPlayingTTS = false
+        isReceivingTTS = false
+        ttsBuffer = Data()
+        audioPlayer?.stop(); audioPlayer = nil
+
         urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: .main)
         ws = urlSession?.webSocketTask(with: wsURL)
         ws?.resume()
