@@ -1,34 +1,60 @@
 import Foundation
 import Speech
 import AVFoundation
-import Combine
 
 class WakeWordService: ObservableObject {
-    @Published var isListening: Bool = false
-    @Published var recognizedText: String = ""
-
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "vi-VN"))
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
+    @Published var isListening = false
+    @Published var recognizedText = ""
 
     var wakeWord: String = "hey kuromi"
     var onWakeWordDetected: ((String) -> Void)?
 
-    // MARK: - Permission
+    private var speechRecognizer: SFSpeechRecognizer?
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private let audioEngine = AVAudioEngine()
+    private var restartWorkItem: DispatchWorkItem?
 
-    func requestPermission(completion: @escaping (Bool) -> Void) {
-        SFSpeechRecognizer.requestAuthorization { status in
+    // MARK: - Start / Stop
+
+    func start() {
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
             DispatchQueue.main.async {
-                completion(status == .authorized)
+                guard status == .authorized, let self = self else { return }
+                self.beginListening()
             }
         }
     }
 
-    // MARK: - Listening
+    func stop() {
+        restartWorkItem?.cancel()
+        restartWorkItem = nil
+        teardown()
+        DispatchQueue.main.async { self.isListening = false }
+    }
 
-    func startListening(audioEngine: AVAudioEngine) {
-        guard !isListening, speechRecognizer?.isAvailable == true else { return }
-        stopListening()
+    // MARK: - Internal
+
+    private func beginListening() {
+        teardown()
+
+        // Use language from wakeWord detection — default vi-VN, fallback en-US
+        let locale = Locale(identifier: wakeWord.hasPrefix("hey") ? "en-US" : "vi-VN")
+        speechRecognizer = SFSpeechRecognizer(locale: locale)
+        guard speechRecognizer?.isAvailable == true else {
+            scheduleRestart(after: 2.0)
+            return
+        }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("[wakeword] audio session error: \(error)")
+            scheduleRestart(after: 2.0)
+            return
+        }
 
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let request = recognitionRequest else { return }
@@ -40,83 +66,55 @@ class WakeWordService: ObservableObject {
             if let result = result {
                 let text = result.bestTranscription.formattedString
                 DispatchQueue.main.async { self.recognizedText = text }
-
                 if LevenshteinHelper.containsWakeWord(text, wakeWord: self.wakeWord) {
-                    DispatchQueue.main.async {
-                        self.onWakeWordDetected?(text)
-                    }
-                    self.restartListening(audioEngine: audioEngine)
+                    DispatchQueue.main.async { self.onWakeWordDetected?(text) }
+                    self.scheduleRestart(after: 1.5) // cooldown
+                    return
+                }
+                // SFSpeechRecognizer stops after ~1min silence; restart proactively
+                if result.isFinal {
+                    self.scheduleRestart(after: 0.3)
                 }
             }
             if error != nil {
-                self.restartListening(audioEngine: audioEngine)
+                self.scheduleRestart(after: 1.0)
             }
         }
 
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
+        inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             self?.recognitionRequest?.append(buffer)
         }
 
-        DispatchQueue.main.async { self.isListening = true }
+        do {
+            audioEngine.prepare()
+            try audioEngine.start()
+            DispatchQueue.main.async { self.isListening = true }
+            print("[wakeword] listening for '\(wakeWord)'")
+        } catch {
+            print("[wakeword] engine error: \(error)")
+            scheduleRestart(after: 2.0)
+        }
     }
 
-    func stopListening() {
+    private func teardown() {
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionRequest = nil
         recognitionTask = nil
-        DispatchQueue.main.async { self.isListening = false }
+        if audioEngine.isRunning {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            audioEngine.stop()
+        }
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    private func restartListening(audioEngine: AVAudioEngine) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.startListening(audioEngine: audioEngine)
-        }
-    }
-
-    // MARK: - Training: Record sample
-
-    private var trainingEngine = AVAudioEngine()
-    private var trainingRecognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var trainingTask: SFSpeechRecognitionTask?
-    var onTrainingSampleCaptured: ((String) -> Void)?
-
-    func recordTrainingSample() {
-        trainingRecognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let request = trainingRecognitionRequest else { return }
-        request.shouldReportPartialResults = false
-
-        var finalText = ""
-
-        trainingTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
-            if let result = result, result.isFinal {
-                finalText = result.bestTranscription.formattedString
-                self?.onTrainingSampleCaptured?(finalText)
-                self?.stopTrainingRecording()
-            }
-        }
-
-        let inputNode = trainingEngine.inputNode
-        let format = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            self?.trainingRecognitionRequest?.append(buffer)
-        }
-
-        do {
-            try trainingEngine.start()
-        } catch {
-            print("Training engine start error: \(error)")
-        }
-    }
-
-    func stopTrainingRecording() {
-        trainingEngine.inputNode.removeTap(onBus: 0)
-        trainingEngine.stop()
-        trainingRecognitionRequest?.endAudio()
-        trainingTask?.cancel()
-        trainingRecognitionRequest = nil
-        trainingTask = nil
+    private func scheduleRestart(after delay: TimeInterval) {
+        restartWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.beginListening() }
+        restartWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
     }
 }

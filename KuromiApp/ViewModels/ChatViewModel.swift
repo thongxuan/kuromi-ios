@@ -258,11 +258,14 @@ class ChatViewModel: ObservableObject {
         }
         relayService?.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
-                self?.chatState = .idle
-                self?.inputLevel = 0.0
-                // Auto restart mic after TTS
-                if self?.isToggleEnabled == true {
-                    self?.startUserSpeaking()
+                guard let self = self else { return }
+                self.chatState = .idle
+                self.inputLevel = 0.0
+                if self.isToggleEnabled {
+                    self.startUserSpeaking()
+                } else {
+                    // Resume wake word listening
+                    self.wakeWordService.start()
                 }
             }
         }
@@ -294,16 +297,19 @@ class ChatViewModel: ObservableObject {
     func onDisappear() {
         stopUserSpeaking()
         gatewayService.disconnect()
-        wakeWordService.stopListening()
+        wakeWordService.stop()
     }
 
     private func setupWakeWordListening() {
-        wakeWordService.requestPermission { [weak self] granted in
-            if granted {
-                // Wake word uses its own engine; we don't share with deepgram here
-                // In production, you'd manage audio session carefully
+        wakeWordService.wakeWord = settings.wakeWord.isEmpty ? "hey kuromi" : settings.wakeWord
+        wakeWordService.onWakeWordDetected = { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self, self.isToggleEnabled else { return }
+                self.wakeWordService.stop()
+                self.startUserSpeaking()
             }
         }
+        wakeWordService.start()
     }
 
     // MARK: - Toggle

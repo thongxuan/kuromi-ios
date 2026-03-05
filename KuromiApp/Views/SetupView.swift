@@ -46,21 +46,7 @@ struct SetupView: View {
                         isSecure: true
                     )
 
-                    // STT Provider button
-                    ProviderButton(
-                        icon: "mic.fill",
-                        label: "Speech-to-Text",
-                        provider: viewModel.settings?.selectedSTTProvider.displayName ?? "Not configured",
-                        hasKey: !(viewModel.settings?.activeSSTConfig.apiKey.isEmpty ?? true)
-                    ) { showSTTSheet = true }
-
-                    // TTS Provider button
-                    ProviderButton(
-                        icon: "speaker.wave.2.fill",
-                        label: "Text-to-Speech",
-                        provider: viewModel.settings?.selectedTTSProvider.displayName ?? "Not configured",
-                        hasKey: !(viewModel.settings?.activeTTSConfig.apiKey.isEmpty ?? true)
-                    ) { showTTSSheet = true }
+                    // STT/TTS handled by relay — no provider config needed
                 }
                 .padding(.horizontal, 24)
 
