@@ -3,9 +3,6 @@ import SwiftUI
 struct SetupView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel: SetupViewModel
-    @State private var showSTTSheet = false
-    @State private var showTTSSheet = false
-
     init(isEditMode: Bool = false) {
         _viewModel = StateObject(wrappedValue: SetupViewModel(isEditMode: isEditMode))
     }
@@ -92,12 +89,6 @@ struct SetupView: View {
                 .padding(.bottom, 40)
             }
         }
-        .sheet(isPresented: $showSTTSheet, onDismiss: { viewModel.reloadSettings() }) {
-            STTProviderSheet { viewModel.reloadSettings() }
-        }
-        .sheet(isPresented: $showTTSSheet, onDismiss: { viewModel.reloadSettings() }) {
-            TTSProviderSheet { viewModel.reloadSettings() }
-        }
     }
 
     private func continueAction() {
@@ -106,47 +97,6 @@ struct SetupView: View {
     }
 }
 
-// MARK: - Provider Button
-struct ProviderButton: View {
-    let icon: String
-    let label: String
-    let provider: String
-    let hasKey: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.body)
-                    .foregroundColor(.gray)
-                    .frame(width: 20)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(label)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text(provider)
-                        .font(.subheadline)
-                        .foregroundColor(.white)
-                }
-
-                Spacer()
-
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(hasKey ? Color.green : Color.orange)
-                        .frame(width: 7, height: 7)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.06)))
-        }
-    }
-}
 
 struct KuromiTextField: View {
     let title: String
