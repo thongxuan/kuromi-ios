@@ -98,7 +98,7 @@ class AudioRelayService: NSObject, ObservableObject {
     }
 
     // MARK: - Mic
-    private let bargeInThreshold: Float = 0.08 // RMS threshold to interrupt TTS
+    private let bargeInThreshold: Float = 0.2 // RMS threshold to interrupt TTS
 
     func startMic() {
         guard !isListening else { return }
