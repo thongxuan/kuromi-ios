@@ -223,7 +223,12 @@ class ChatViewModel: ObservableObject {
         relayService.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                if self.ignoreNextTTSEnd { self.ignoreNextTTSEnd = false; return }
+                if self.ignoreNextTTSEnd {
+                    self.ignoreNextTTSEnd = false
+                    self.chatState = .idle
+                    self.inputLevel = 0.0
+                    return
+                }
                 if self.isStopping {
                     // TTS was last response after stop — finalize cleanly
                     self.finalizeStop(fromTTSEnd: true)
