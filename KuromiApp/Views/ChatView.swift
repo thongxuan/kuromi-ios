@@ -374,7 +374,7 @@ struct TranscriptBubble: View {
 
             Text(message.text)
                 .font(.subheadline)
-                .foregroundColor(message.role == .user ? .white : .purple.opacity(1.2))
+                .foregroundColor(message.role == .user ? .appLabel : .purple)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
