@@ -250,7 +250,7 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
                 }
 
-                Spacer()
+                Spacer(minLength: 16)
 
                 Button(action: { dismiss() }) {
                     Text("Done")
@@ -260,6 +260,7 @@ struct LanguageSheet: View {
                 }
             }
             .padding(24)
+            .padding(.bottom, 8)
         }
         .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
     }
