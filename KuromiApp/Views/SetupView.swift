@@ -82,7 +82,7 @@ struct SetupView: View {
         // Gateway sheet
         .sheet(isPresented: $showGatewaySheet) {
             GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
-                .presentationDetents([.height(480)])
+                .presentationDetents([.height(340)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.appSheetBackground)
                 .presentationBackgroundInteraction(.disabled)
