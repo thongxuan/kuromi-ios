@@ -123,7 +123,7 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
-        AudioServicesPlaySystemSound(1114) // descending tone
+        AudioServicesPlaySystemSound(1155) // iOS keyboard pressDelete sound
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.relayService.stopMic()
         }
