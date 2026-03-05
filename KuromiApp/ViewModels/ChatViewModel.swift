@@ -215,7 +215,7 @@ class ChatViewModel: ObservableObject {
 
         relayService.onTTSStart = { [weak self] in
             DispatchQueue.main.async {
-                guard let self = self, !self.isStopping else { return }
+                guard let self = self else { return }
                 self.chatState = .aiSpeaking
             }
         }
@@ -224,7 +224,11 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if self.ignoreNextTTSEnd { self.ignoreNextTTSEnd = false; return }
-                if self.isStopping { self.finalizeStop(fromTTSEnd: true); return }
+                if self.isStopping {
+                    // TTS was last response after stop — finalize cleanly
+                    self.finalizeStop(fromTTSEnd: true)
+                    return
+                }
                 self.chatState = .idle
                 self.inputLevel = 0.0
                 if self.isToggleEnabled { self.startChat() }
