@@ -14,9 +14,10 @@ struct ChatView: View {
                 // Top bar
                 topBar
 
+                Spacer()
+
                 // Transcript list — only shown when showText is true
                 if showText {
-                    Spacer()
                     TranscriptListView(
                         messages: viewModel.messages,
                         currentTranscript: viewModel.currentTranscript,
@@ -25,10 +26,10 @@ struct ChatView: View {
                     )
                     .frame(maxHeight: 280)
                     .padding(.horizontal, 20)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
 
-                Spacer()
+                    Spacer()
+                }
 
                 // Reconnect button
                 if viewModel.showReconnectButton {
@@ -44,16 +45,16 @@ struct ChatView: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
                     }
                     .padding(.bottom, 12)
-
                 }
 
-                // Orb button (gộp orb + toggle)
+                // Orb button
                 orbButton
 
                 // Status label dưới orb
                 statusLabel
                     .padding(.top, 8)
-                    .padding(.bottom, 56)
+
+                Spacer()
             }
         }
         .onAppear { viewModel.onAppear() }
