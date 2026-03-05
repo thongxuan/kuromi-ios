@@ -48,7 +48,7 @@ struct SetupView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "globe")
                                 .font(.caption).foregroundColor(.purple)
-                            Text("Ngôn ngữ")
+                            Text("Language")
                                 .font(.caption).fontWeight(.medium).foregroundColor(.gray)
                         }
                         Menu {

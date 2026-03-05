@@ -31,7 +31,14 @@ struct ChatView: View {
                     Spacer()
                 }
 
-                // Reconnect button
+                // Orb button
+                orbButton
+
+                // Status label dưới orb
+                statusLabel
+                    .padding(.top, 8)
+
+                // Reconnect button — below orb
                 if viewModel.showReconnectButton {
                     Button(action: { viewModel.reconnect() }) {
                         HStack(spacing: 8) {
@@ -44,15 +51,8 @@ struct ChatView: View {
                         .frame(height: 44)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
                     }
-                    .padding(.bottom, 12)
+                    .padding(.top, 12)
                 }
-
-                // Orb button
-                orbButton
-
-                // Status label dưới orb
-                statusLabel
-                    .padding(.top, 8)
 
                 Spacer()
             }
@@ -133,7 +133,7 @@ struct ChatView: View {
         let label: String = {
             switch viewModel.chatState {
             case .connecting: return "Connecting to gateway…"
-            case .idle: return "Tap to speak"
+            case .idle: return viewModel.wakePhrase.isEmpty ? "Tap to speak" : "Tap or say '\(viewModel.wakePhrase)'"
             case .userSpeaking: return ""
             case .aiSpeaking: return ""
             case .error(let msg): return msg

@@ -32,6 +32,7 @@ class ChatViewModel: ObservableObject {
     private var relayService = AudioRelayService()
     private var wakeWordService = WakeWordService()
     private var settings: AppSettings
+    var wakePhrase: String { settings.wakePhrase }
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
     private var stopTimeoutTimer: Timer?
