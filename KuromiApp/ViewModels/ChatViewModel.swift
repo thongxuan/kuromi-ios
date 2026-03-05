@@ -310,7 +310,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - On-Device STT
 
     private func setupOnDeviceSTT() {
-        onDeviceSTTService.onTranscript = { [weak self] text, isFinal in
+        onDeviceSTTService.onTranscript = { [weak self] (text: String, isFinal: Bool) in
             guard let self = self else { return }
             // Stop phrase check
             let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
@@ -332,7 +332,7 @@ class ChatViewModel: ObservableObject {
             self?.inputLevel = level
         }
 
-        onDeviceSTTService.onFinalTranscript = { [weak self] text in
+        onDeviceSTTService.onFinalTranscript = { [weak self] (text: String) in
             guard let self = self, case .userSpeaking = self.chatState else { return }
             self.onDeviceSTTService.stop()
             self.chatState = .idle

@@ -340,12 +340,12 @@ struct TranscriptListView: View {
                 }
                 .padding(.vertical, 8)
             }
-            .onChange(of: messages.count) { _, _ in
+            .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
-            .onChange(of: currentTranscript) { _, _ in
+            .onChange(of: currentTranscript) {
                 proxy.scrollTo("live", anchor: .bottom)
             }
         }
