@@ -200,5 +200,6 @@ class ChatViewModel: ObservableObject {
         silenceTimer = nil
         relayService.stopMic()
         chatState = .idle
+        resumeWakeWord()
     }
 }
