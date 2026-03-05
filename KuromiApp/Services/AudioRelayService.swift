@@ -99,7 +99,7 @@ class AudioRelayService: NSObject, ObservableObject {
 
     // MARK: - Mic
     func startMic() {
-        guard !isListening else { return }
+        guard !isListening, !isPlayingTTS else { return }
         let inputNode = audioEngine.inputNode
         // 16kHz mono linear16
         let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
@@ -181,6 +181,8 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.ttsBuffer = Data()
                 self.isReceivingTTS = true
                 self.isPlayingTTS = true
+                // Stop mic during TTS to prevent audio feedback
+                if self.isListening { self.stopMic() }
                 self.onTTSStart?()
             case "tts_end":
                 self.isReceivingTTS = false
