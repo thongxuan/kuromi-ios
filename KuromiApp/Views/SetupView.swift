@@ -84,6 +84,8 @@ struct SetupView: View {
             GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+                .presentationBackground(Color(red: 0.08, green: 0.08, blue: 0.10))
+                .presentationBackgroundInteraction(.disabled)
         }
         // Language sheet
         .sheet(isPresented: $showLanguageSheet) {
@@ -94,6 +96,8 @@ struct SetupView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
+            .presentationBackground(Color(red: 0.08, green: 0.08, blue: 0.10))
+            .presentationBackgroundInteraction(.disabled)
         }
     }
 
@@ -157,7 +161,7 @@ struct GatewaySheet: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.08, green: 0.08, blue: 0.10).ignoresSafeArea()
             VStack(alignment: .leading, spacing: 24) {
                 Text("Gateway")
                     .font(.title2).bold().foregroundColor(.white)
@@ -204,7 +208,7 @@ struct LanguageSheet: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(red: 0.08, green: 0.08, blue: 0.10).ignoresSafeArea()
             VStack(alignment: .leading, spacing: 24) {
                 Text("Language")
                     .font(.title2).bold().foregroundColor(.white)
