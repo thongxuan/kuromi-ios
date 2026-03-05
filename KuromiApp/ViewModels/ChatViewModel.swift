@@ -230,33 +230,27 @@ class ChatViewModel: ObservableObject {
                 self?.isToggleEnabled = false
             }
         }
+        // Transcript — chỉ dùng cho UI display (chat bubble)
         relayService?.onTranscript = { [weak self] text, isFinal in
             guard let self = self else { return }
             DispatchQueue.main.async {
                 if isFinal && !text.isEmpty {
-                    self.accumulatedText += (self.accumulatedText.isEmpty ? "" : " ") + text
-                    self.currentTranscript = self.accumulatedText
-                    // Auto-stop mic when utterance is final — relay server handles sending to gateway
-                    self.relayService?.stopMic()
+                    let msg = Message(role: .user, text: text)
+                    self.messages.append(msg)
+                    self.currentTranscript = ""
+                    self.accumulatedText = ""
                     self.chatState = .idle
                 } else if !isFinal {
-                    self.currentTranscript = self.accumulatedText + (self.accumulatedText.isEmpty ? "" : " ") + text
+                    self.currentTranscript = text
                 }
             }
         }
+        // AI text — show chat bubble
         relayService?.onAIText = { [weak self] text in
-            guard let self = self else { return }
             DispatchQueue.main.async {
-                // Show transcript as user message
-                if !self.accumulatedText.isEmpty {
-                    let userMsg = Message(role: .user, text: self.accumulatedText)
-                    self.messages.append(userMsg)
-                    self.accumulatedText = ""
-                    self.currentTranscript = ""
-                }
-                let aiMsg = Message(role: .assistant, text: text)
-                self.messages.append(aiMsg)
-                self.chatState = .aiSpeaking
+                guard !text.isEmpty else { return }
+                let msg = Message(role: .assistant, text: text)
+                self?.messages.append(msg)
             }
         }
         relayService?.onTTSStart = { [weak self] in
@@ -266,7 +260,7 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self?.chatState = .idle
                 self?.inputLevel = 0.0
-                // Auto restart mic
+                // Auto restart mic after TTS
                 if self?.isToggleEnabled == true {
                     self?.startUserSpeaking()
                 }
@@ -274,21 +268,6 @@ class ChatViewModel: ObservableObject {
         }
         relayService?.onAudioLevel = { [weak self] level in
             self?.inputLevel = level
-        }
-        relayService?.onMicStop = { [weak self] in
-            DispatchQueue.main.async {
-                self?.chatState = .idle
-                self?.inputLevel = 0.0
-            }
-        }
-        relayService?.onUtteranceEnd = { [weak self] in
-            DispatchQueue.main.async {
-                // Deepgram detected end of speech — stop mic if still listening
-                guard let self = self, case .userSpeaking = self.chatState else { return }
-                self.relayService?.stopMic()
-                self.chatState = .idle
-                self.inputLevel = 0.0
-            }
         }
     }
 
@@ -378,6 +357,7 @@ class ChatViewModel: ObservableObject {
         if let relay = relayService {
             relay.stopMic()
             chatState = .idle
+            // Relay handles transcript + gateway — no finalize needed here
         } else {
             audioService.stopRecording()
             deepgramService?.disconnect()
