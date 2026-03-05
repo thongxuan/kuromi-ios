@@ -106,7 +106,7 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            AudioServicesPlaySystemSound(1322) // "Anticipate" — ascending chime
+            AudioServicesPlaySystemSound(1075) // "Tink" — clean high click, no vibration
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 self?.relayService.startMic()
             }
