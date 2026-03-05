@@ -48,7 +48,7 @@ class VoiceSetupViewModel: ObservableObject {
     @Published var trainingError: String = ""
 
     private var openAITTSService: OpenAITTSService?
-    private let wakeWordService = WakeWordService()
+
     private var cancellables = Set<AnyCancellable>()
 
     // Danh sách 9 voices OpenAI với labels
@@ -72,14 +72,6 @@ class VoiceSetupViewModel: ObservableObject {
             selectedLanguage = STTLanguage.from(code: settings.sttLanguage)
         }
 
-        wakeWordService.onTrainingSampleCaptured = { [weak self] text in
-            guard let self = self else { return }
-            DispatchQueue.main.async {
-                self.trainingSamples.append(text)
-                self.isRecordingTraining = false
-                if self.currentTrainingStep < 3 { self.currentTrainingStep += 1 }
-            }
-        }
 
         Publishers.CombineLatest4($filterGender, $filterAge, $filterTone, $filterDescription)
             .debounce(for: .milliseconds(200), scheduler: RunLoop.main)
@@ -131,19 +123,7 @@ class VoiceSetupViewModel: ObservableObject {
         openAITTSService?.speak(text: "Xin chào, em là \(voice.name), giọng đọc OpenAI!", voice: voice.id)
     }
 
-    // MARK: - Wake Word Training
-
-    func startTrainingRecording() {
-        guard currentTrainingStep < 3 else { return }
-        isRecordingTraining = true
-        trainingError = ""
-        wakeWordService.recordTrainingSample()
-    }
-
-    func stopTrainingRecording() {
-        wakeWordService.stopTrainingRecording()
-        isRecordingTraining = false
-    }
+    // MARK: - Wake Word (no training needed — relay uses Levenshtein match)
 
     func resetTraining() {
         trainingSamples = []
