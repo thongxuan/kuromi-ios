@@ -15,9 +15,7 @@ struct SetupView: View {
             VStack(spacing: 32) {
                 // Header
                 VStack(spacing: 8) {
-                    Text("🖤")
-                        .font(.system(size: 60))
-                    Text("Kuromi")
+                    Text("OpenVoice")
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     Text(viewModel.isEditMode ? "Edit Settings" : "Set up your assistant")
