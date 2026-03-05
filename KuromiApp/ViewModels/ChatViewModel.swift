@@ -122,12 +122,8 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
-        // Switch to playAndRecord before playing sound (measurement mode blocks playback)
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
-        try? session.setActive(true)
         AudioServicesPlaySystemSound(1114) // descending tone
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.relayService.stopMic()
         }
         // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
