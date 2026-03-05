@@ -269,6 +269,12 @@ class ChatViewModel: ObservableObject {
         relayService?.onAudioLevel = { [weak self] level in
             self?.inputLevel = level
         }
+        relayService?.onMicStop = { [weak self] in
+            DispatchQueue.main.async {
+                self?.chatState = .idle
+                self?.inputLevel = 0.0
+            }
+        }
     }
 
     private func connectWithTimeout(to url: String) {

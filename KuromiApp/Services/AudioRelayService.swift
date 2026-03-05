@@ -15,6 +15,7 @@ class AudioRelayService: NSObject, ObservableObject {
     var onTTSStart: (() -> Void)?
     var onTTSEnd: (() -> Void)?
     var onAudioLevel: ((Float) -> Void)?
+    var onMicStop: (() -> Void)?
     var onDisconnected: (() -> Void)?
 
     private var gatewayURL = ""
@@ -185,6 +186,9 @@ class AudioRelayService: NSObject, ObservableObject {
             case "tts_end":
                 self.isReceivingTTS = false
                 self.playTTSBuffer()
+            case "mic_stop":
+                self.stopMic()
+                self.onMicStop?()
             case "tts_abort":
                 self.isReceivingTTS = false
                 self.isPlayingTTS = false
