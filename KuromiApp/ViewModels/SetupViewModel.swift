@@ -10,6 +10,7 @@ class SetupViewModel: ObservableObject {
     @Published var gatewayToken: String = ""
     @Published var sttLanguage: String = "vi"
     @Published var wakePhrase: String = "kuromi"
+    @Published var stopPhrase: String = "dừng lại"
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
@@ -32,6 +33,7 @@ class SetupViewModel: ObservableObject {
             gatewayToken = s.gatewayToken
             sttLanguage = s.sttLanguage
             wakePhrase = s.wakePhrase
+            stopPhrase = s.stopPhrase
         }
     }
 
@@ -46,7 +48,8 @@ class SetupViewModel: ObservableObject {
             gatewayURL: gatewayURL.trimmingCharacters(in: .whitespaces),
             gatewayToken: gatewayToken.trimmingCharacters(in: .whitespaces),
             sttLanguage: sttLanguage,
-            wakePhrase: wakePhrase.trimmingCharacters(in: .whitespaces).lowercased()
+            wakePhrase: wakePhrase.trimmingCharacters(in: .whitespaces).lowercased(),
+            stopPhrase: stopPhrase.trimmingCharacters(in: .whitespaces).lowercased()
         )
         s.save()
         return s

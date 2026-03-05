@@ -84,6 +84,14 @@ struct SetupView: View {
                         text: $viewModel.wakePhrase,
                         icon: "waveform"
                     )
+
+                    // Stop phrase
+                    KuromiTextField(
+                        title: "Stop phrase",
+                        placeholder: "e.g. dừng lại",
+                        text: $viewModel.stopPhrase,
+                        icon: "stop.circle"
+                    )
                 }
                 .padding(.horizontal, 24)
 

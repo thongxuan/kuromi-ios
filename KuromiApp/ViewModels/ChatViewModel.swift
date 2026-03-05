@@ -58,6 +58,13 @@ class ChatViewModel: ObservableObject {
         relayService.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                // Check stop phrase (partial or final)
+                let stopPhrase = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
+                if !stopPhrase.isEmpty && text.lowercased().contains(stopPhrase) {
+                    print("[chat] stop phrase detected: '\(text)'")
+                    self.stopUserSpeaking()
+                    return
+                }
                 if isFinal && !text.isEmpty {
                     self.messages.append(Message(role: .user, text: text))
                     self.currentTranscript = ""
