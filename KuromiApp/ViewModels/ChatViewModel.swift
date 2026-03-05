@@ -229,7 +229,7 @@ class ChatViewModel: ObservableObject {
         currentTranscript = ""
         accumulatedText = ""
         if playBeep {
-            AudioServicesPlaySystemSound(1113) // iOS recording start sound
+            AudioServicesPlaySystemSound(1322) // "Anticipate" — ascending chime, Siri-like
             // Delay mic start so sound plays fully before audio session switches
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 self?.relayService.startMic()
