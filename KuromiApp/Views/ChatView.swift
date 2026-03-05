@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = ChatViewModel()
+    @State private var showText: Bool = false
 
     var body: some View {
         ZStack {
@@ -15,15 +16,18 @@ struct ChatView: View {
 
                 Spacer()
 
-                // Transcript list
-                TranscriptListView(
-                    messages: viewModel.messages,
-                    currentTranscript: viewModel.currentTranscript,
-                    currentAIResponse: viewModel.currentAIResponse,
-                    chatState: viewModel.chatState
-                )
-                .frame(maxHeight: 280)
-                .padding(.horizontal, 20)
+                // Transcript list — only shown when showText is true
+                if showText {
+                    TranscriptListView(
+                        messages: viewModel.messages,
+                        currentTranscript: viewModel.currentTranscript,
+                        currentAIResponse: viewModel.currentAIResponse,
+                        chatState: viewModel.chatState
+                    )
+                    .frame(maxHeight: 280)
+                    .padding(.horizontal, 20)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
 
                 Spacer()
 
@@ -72,6 +76,18 @@ struct ChatView: View {
             }
 
             Spacer()
+
+            // Text toggle
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    showText.toggle()
+                }
+            }) {
+                Image(systemName: showText ? "text.bubble.fill" : "text.bubble")
+                    .font(.body)
+                    .foregroundColor(showText ? .purple : .gray)
+            }
+            .padding(.trailing, 12)
 
             // Speaker toggle
             Button(action: { viewModel.toggleSpeaker() }) {
