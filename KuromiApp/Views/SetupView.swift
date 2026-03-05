@@ -102,7 +102,7 @@ struct SetupView: View {
 
     private func continueAction() {
         guard viewModel.save() != nil else { return }
-        appState.currentScreen = .voiceSetup
+        appState.currentScreen = .chat
     }
 }
 

@@ -24,7 +24,7 @@ class ChatViewModel: ObservableObject {
     private var deepgramService: STTService?
     private var ttsService: TTSService?
     private var relayService: AudioRelayService?
-    private var wakeWordService = WakeWordService()
+
 
     var isRelayMode: Bool { relayService != nil }
 
@@ -171,11 +171,6 @@ class ChatViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Wake word
-        wakeWordService.wakeWord = settings.wakeWord
-        wakeWordService.onWakeWordDetected = { [weak self] phrase in
-            self?.handleWakeWord(phrase)
-        }
     }
 
     // MARK: - Lifecycle
@@ -183,7 +178,6 @@ class ChatViewModel: ObservableObject {
     func onAppear() {
         setupAudioSession()
         connectWithTimeout(to: settings.gatewayURL)
-        setupWakeWordListening()
     }
 
     func toggleSpeaker() {
@@ -263,9 +257,6 @@ class ChatViewModel: ObservableObject {
                 self.inputLevel = 0.0
                 if self.isToggleEnabled {
                     self.startUserSpeaking()
-                } else {
-                    // Resume wake word listening
-                    self.wakeWordService.start()
                 }
             }
         }
@@ -297,19 +288,6 @@ class ChatViewModel: ObservableObject {
     func onDisappear() {
         stopUserSpeaking()
         gatewayService.disconnect()
-        wakeWordService.stop()
-    }
-
-    private func setupWakeWordListening() {
-        wakeWordService.wakeWord = settings.wakeWord.isEmpty ? "hey kuromi" : settings.wakeWord
-        wakeWordService.onWakeWordDetected = { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self = self, self.isToggleEnabled else { return }
-                self.wakeWordService.stop()
-                self.startUserSpeaking()
-            }
-        }
-        wakeWordService.start()
     }
 
     // MARK: - Toggle
@@ -417,25 +395,7 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
     }
 
-    // MARK: - Wake Word
-
-    private func handleWakeWord(_ phrase: String) {
-        DispatchQueue.main.async {
-            // Stop any current activity
-            self.ttsService?.stopSpeaking()
-            self.audioService.stopRecording()
-            self.deepgramService?.disconnect()
-
-            // If not connected yet, store for later
-            if case .connected = self.gatewayService.state {
-                self.sendTextToGateway(phrase)
-            } else {
-                self.pendingWakeInput = phrase
-                self.gatewayService.connect(to: self.settings.gatewayURL)
-            }
-        }
-    }
-
+    
     // MARK: - Settings
 
     func reloadSettings() {
@@ -453,7 +413,7 @@ class ChatViewModel: ObservableObject {
                 if isFinal && !text.isEmpty { self?.finalizeSpeech(text) }
             }
         }
-        wakeWordService.wakeWord = newSettings.wakeWord
+
         gatewayService.disconnect()
         gatewayService.connect(to: newSettings.gatewayURL)
     }

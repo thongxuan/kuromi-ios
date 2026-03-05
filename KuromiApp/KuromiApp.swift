@@ -38,7 +38,6 @@ class AppState: ObservableObject {
 
 enum AppScreen: Equatable {
     case setup
-    case voiceSetup
     case chat
 }
 
@@ -50,8 +49,6 @@ struct RootView: View {
             switch appState.currentScreen {
             case .setup:
                 SetupView(isEditMode: appState.isSetupEditMode)
-            case .voiceSetup:
-                VoiceSetupView(isEditMode: appState.isSetupEditMode)
             case .chat:
                 ChatView()
             }
