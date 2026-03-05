@@ -137,6 +137,7 @@ struct SetupView: View {
                 .padding(.bottom, 40)
             }
         }
+        .safeAreaPadding()
     }
 
     private func continueAction() {

@@ -57,6 +57,7 @@ struct ChatView: View {
                 Spacer()
             }
         }
+        .safeAreaPadding()
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
     }
