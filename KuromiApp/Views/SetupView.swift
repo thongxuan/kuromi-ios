@@ -215,7 +215,7 @@ struct LanguageSheet: View {
                     .padding(.top, 8)
 
                 VStack(spacing: 16) {
-                    // Language picker
+                    // Language picker — same shell as KuromiTextField
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "globe").font(.caption).foregroundColor(.purple)
@@ -243,6 +243,7 @@ struct LanguageSheet: View {
                                         .strokeBorder(Color.appBorder, lineWidth: 1))
                             )
                         }
+                        .frame(maxWidth: .infinity)
                     }
 
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
