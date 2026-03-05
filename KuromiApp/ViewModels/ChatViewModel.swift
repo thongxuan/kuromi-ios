@@ -107,7 +107,7 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            AudioServicesPlaySystemSound(1123) // iOS keyboard pressClick sound
+            AudioServicesPlaySystemSound(1113) // begin_record.caf
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 self?.relayService.startMic()
             }
@@ -123,7 +123,7 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
-        AudioServicesPlaySystemSound(1155) // iOS keyboard pressDelete sound
+        AudioServicesPlaySystemSound(1114) // end_record.caf
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.relayService.stopMic()
         }
