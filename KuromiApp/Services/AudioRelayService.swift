@@ -34,6 +34,7 @@ class AudioRelayService: NSObject, ObservableObject {
     private var reconnectAttempts = 0
     private var isReconnecting = false
     private let bargeInThreshold: Float = 0.2
+    private var didBargeIn: Bool = false  // prevent repeated barge-in for same TTS
 
     // MARK: - Connect / Disconnect
 
@@ -121,7 +122,8 @@ class AudioRelayService: NSObject, ObservableObject {
             let data = self.pcmData(from: converted)
             guard !data.isEmpty else { return }
             if self.isPlayingTTS {
-                if level > self.bargeInThreshold {
+                if level > self.bargeInThreshold && !self.didBargeIn {
+                    self.didBargeIn = true
                     print("[relay] barge-in (level=\(level))")
                     self.sendJSON(["type": "barge_in"])
                     self.sendBinary(data)
@@ -192,6 +194,7 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.ttsBuffer = Data()
                 self.isReceivingTTS = true
                 self.isPlayingTTS = true
+                self.didBargeIn = false  // reset for new TTS
                 self.onTTSStart?()
             case "tts_end":
                 self.isReceivingTTS = false
