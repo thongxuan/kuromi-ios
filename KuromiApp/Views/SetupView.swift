@@ -12,17 +12,17 @@ struct SetupView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
 
             VStack(spacing: 32) {
                 // Header
                 VStack(spacing: 8) {
                     Text("OpenVoice")
                         .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.appLabel)
                     Text(viewModel.isEditMode ? "Edit Settings" : "Set up your assistant")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appSecondaryLabel)
                 }
                 .padding(.top, 48)
 
@@ -58,20 +58,20 @@ struct SetupView: View {
                     Button(action: continueAction) {
                         HStack {
                             Text(viewModel.isEditMode ? "Save" : "Continue")
-                                .font(.headline).foregroundColor(.black)
+                                .font(.headline).foregroundColor(.appBackground)
                             Spacer()
-                            Image(systemName: "arrow.right").foregroundColor(.black)
+                            Image(systemName: "arrow.right").foregroundColor(.appBackground)
                         }
                         .padding(.horizontal, 24)
                         .frame(height: 56)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.appLabel))
                     }
                     .disabled(!viewModel.canContinue)
                     .opacity(viewModel.canContinue ? 1.0 : 0.4)
 
                     if viewModel.isEditMode {
                         Button("Cancel") { appState.closeSetupEdit() }
-                            .font(.headline).foregroundColor(.gray).frame(height: 44)
+                            .font(.headline).foregroundColor(.appSecondaryLabel).frame(height: 44)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -84,7 +84,7 @@ struct SetupView: View {
             GatewaySheet(gatewayURL: $viewModel.gatewayURL, gatewayToken: $viewModel.gatewayToken)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Color(red: 0.08, green: 0.08, blue: 0.10))
+                .presentationBackground(Color.appSheetBackground)
                 .presentationBackgroundInteraction(.disabled)
         }
         // Language sheet
@@ -96,7 +96,7 @@ struct SetupView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Color(red: 0.08, green: 0.08, blue: 0.10))
+            .presentationBackground(Color.appSheetBackground)
             .presentationBackgroundInteraction(.disabled)
         }
     }
@@ -126,10 +126,10 @@ struct SettingRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.appSecondaryLabel)
                     Text(value)
                         .font(.body)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appLabel)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -144,9 +144,9 @@ struct SettingRow: View {
             .frame(height: 64)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.white.opacity(0.07))
+                    .fill(Color.appFieldBackground)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                        .strokeBorder(Color.appBorder, lineWidth: 1))
             )
         }
     }
@@ -161,10 +161,10 @@ struct GatewaySheet: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.08, green: 0.08, blue: 0.10).ignoresSafeArea()
+            Color.appSheetBackground.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 24) {
                 Text("Gateway")
-                    .font(.title2).bold().foregroundColor(.white)
+                    .font(.title2).bold().foregroundColor(.appLabel)
                     .padding(.top, 8)
 
                 VStack(spacing: 16) {
@@ -187,9 +187,9 @@ struct GatewaySheet: View {
 
                 Button(action: { dismiss() }) {
                     Text("Done")
-                        .font(.headline).foregroundColor(.black)
+                        .font(.headline).foregroundColor(.appBackground)
                         .frame(maxWidth: .infinity).frame(height: 52)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.appLabel))
                 }
             }
             .padding(24)
@@ -208,10 +208,10 @@ struct LanguageSheet: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.08, green: 0.08, blue: 0.10).ignoresSafeArea()
+            Color.appSheetBackground.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 24) {
                 Text("Language")
-                    .font(.title2).bold().foregroundColor(.white)
+                    .font(.title2).bold().foregroundColor(.appLabel)
                     .padding(.top, 8)
 
                 VStack(spacing: 16) {
@@ -219,7 +219,7 @@ struct LanguageSheet: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "globe").font(.caption).foregroundColor(.purple)
-                            Text("Language").font(.caption).fontWeight(.medium).foregroundColor(.gray)
+                            Text("Language").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
                         }
                         Menu {
                             ForEach(SetupViewModel.languages, id: \.code) { lang in
@@ -231,16 +231,16 @@ struct LanguageSheet: View {
                             HStack {
                                 let current = SetupViewModel.languages.first { $0.code == sttLanguage }
                                 Text("\(current?.flag ?? "🌐") \(current?.name ?? sttLanguage)")
-                                    .foregroundColor(.white).font(.body)
+                                    .foregroundColor(.appLabel).font(.body)
                                 Spacer()
-                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.gray)
+                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
                             }
                             .padding(.horizontal, 16).frame(height: 52)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white.opacity(0.07))
+                                    .fill(Color.appFieldBackground)
                                     .overlay(RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                                        .strokeBorder(Color.appBorder, lineWidth: 1))
                             )
                         }
                     }
@@ -253,9 +253,9 @@ struct LanguageSheet: View {
 
                 Button(action: { dismiss() }) {
                     Text("Done")
-                        .font(.headline).foregroundColor(.black)
+                        .font(.headline).foregroundColor(.appBackground)
                         .frame(maxWidth: .infinity).frame(height: 52)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.appLabel))
                 }
             }
             .padding(24)
@@ -280,7 +280,7 @@ struct KuromiTextField: View {
         switch validation {
         case .success: return .green.opacity(0.6)
         case .failure: return .red.opacity(0.6)
-        default: return .white.opacity(0.1)
+        default: return Color.appBorder
         }
     }
 
@@ -290,7 +290,7 @@ struct KuromiTextField: View {
                 if !icon.isEmpty {
                     Image(systemName: icon).font(.caption).foregroundColor(.purple)
                 }
-                Text(title).font(.caption).fontWeight(.medium).foregroundColor(.gray)
+                Text(title).font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
                 Spacer()
                 switch validation {
                 case .checking: ProgressView().scaleEffect(0.7).tint(.gray)
@@ -313,19 +313,19 @@ struct KuromiTextField: View {
                             .autocapitalization(.none).autocorrectionDisabled()
                     }
                 }
-                .font(.system(.body, design: .monospaced)).foregroundColor(.white)
+                .font(.system(.body, design: .monospaced)).foregroundColor(.appLabel)
 
                 if isSecure {
                     Button(action: { isRevealed.toggle() }) {
                         Image(systemName: isRevealed ? "eye.slash" : "eye")
-                            .foregroundColor(.gray).font(.caption)
+                            .foregroundColor(.appSecondaryLabel).font(.caption)
                     }
                 }
             }
             .padding(.horizontal, 16).frame(height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white.opacity(0.07))
+                    .fill(Color.appFieldBackground)
                     .overlay(RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(borderColor, lineWidth: 1))
             )

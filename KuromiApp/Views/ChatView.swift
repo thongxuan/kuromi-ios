@@ -8,7 +8,7 @@ struct ChatView: View {
     var body: some View {
         ZStack {
             // Background
-            Color.black.ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Top bar
@@ -46,7 +46,7 @@ struct ChatView: View {
                             Text("Reconnect")
                         }
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.appLabel)
                         .padding(.horizontal, 24)
                         .frame(height: 44)
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple.opacity(0.7)))
@@ -73,7 +73,7 @@ struct ChatView: View {
                     .frame(width: 8, height: 8)
                 Text(connectionLabel)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appSecondaryLabel)
             }
 
             Spacer()
@@ -101,7 +101,7 @@ struct ChatView: View {
             Button(action: { appState.openSetupEdit() }) {
                 Image(systemName: "gearshape")
                     .font(.body)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.appSecondaryLabel)
             }
         }
         .padding(.horizontal, 20)
@@ -142,7 +142,7 @@ struct ChatView: View {
         }()
         let color: Color = {
             switch viewModel.chatState {
-            case .userSpeaking: return .white.opacity(0.5)
+            case .userSpeaking: return Color.appLabel.opacity(0.5)
             case .aiSpeaking: return .purple.opacity(0.5)
             case .error: return .red
             default: return .gray
@@ -194,7 +194,7 @@ struct OrbView: View {
 
     private var orbColor: Color {
         switch chatState {
-        case .idle, .connecting: return Color.white.opacity(0.13)
+        case .idle, .connecting: return Color.appLabel.opacity(0.13)
         case .userSpeaking: return Color.gray.opacity(0.6)   // xám khi anh nói
         case .aiSpeaking: return Color.purple.opacity(0.88)  // tím khi em trả lời
         case .error: return Color.red.opacity(0.4)
@@ -229,7 +229,7 @@ struct OrbView: View {
             // Icon
             Image(systemName: orbIcon)
                 .font(.system(size: 24, weight: .light))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.appLabel.opacity(0.7))
                 .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
         }
@@ -380,7 +380,7 @@ struct TranscriptBubble: View {
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .fill(message.role == .user
-                              ? Color.white.opacity(0.08)
+                              ? Color.appLabel.opacity(0.08)
                               : Color.purple.opacity(0.12))
                 )
                 .frame(maxWidth: 280, alignment: message.role == .user ? .trailing : .leading)
