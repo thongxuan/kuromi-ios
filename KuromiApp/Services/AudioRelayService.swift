@@ -98,8 +98,10 @@ class AudioRelayService: NSObject, ObservableObject {
     }
 
     // MARK: - Mic
+    private let bargeInThreshold: Float = 0.08 // RMS threshold to interrupt TTS
+
     func startMic() {
-        guard !isListening, !isPlayingTTS else { return }
+        guard !isListening else { return }
         let inputNode = audioEngine.inputNode
         // 16kHz mono linear16
         let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
@@ -110,12 +112,21 @@ class AudioRelayService: NSObject, ObservableObject {
         inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: nativeFormat) { [weak self] buffer, _ in
             guard let self = self, let converted = self.convertBuffer(buffer, to: format) else { return }
+            let level = self.computeRMS(from: converted)
+            DispatchQueue.main.async { self.onAudioLevel?(level) }
+
             let data = self.pcmData(from: converted)
             if !data.isEmpty {
-                self.sendBinary(data)
-                // Compute RMS audio level for orb animation
-                let level = self.computeRMS(from: converted)
-                DispatchQueue.main.async { self.onAudioLevel?(level) }
+                if self.isPlayingTTS {
+                    // During TTS: only send if RMS exceeds barge-in threshold
+                    if level > self.bargeInThreshold {
+                        print("[relay] barge-in detected (level: \(level))")
+                        self.sendJSON(["type": "barge_in"])
+                        self.sendBinary(data)
+                    }
+                } else {
+                    self.sendBinary(data)
+                }
             }
         }
         do {
@@ -181,9 +192,15 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.ttsBuffer = Data()
                 self.isReceivingTTS = true
                 self.isPlayingTTS = true
-                // Stop mic during TTS to prevent audio feedback
-                if self.isListening { self.stopMic() }
                 self.onTTSStart?()
+            case "tts_abort":
+                // Server aborted TTS due to barge-in
+                self.isReceivingTTS = false
+                self.isPlayingTTS = false
+                self.audioPlayer?.stop()
+                self.audioPlayer = nil
+                self.ttsBuffer = Data()
+                self.onTTSEnd?()
             case "tts_end":
                 self.isReceivingTTS = false
                 self.playTTSBuffer()
