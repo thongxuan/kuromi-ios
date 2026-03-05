@@ -191,8 +191,8 @@ struct OrbView: View {
                 ForEach(0..<2, id: \.self) { i in
                     Circle()
                         .strokeBorder(Color.purple.opacity(0.12 - Double(i) * 0.04), lineWidth: 1)
-                        .frame(width: orbBase * orbScale + CGFloat(i + 1) * 20,
-                               height: orbBase * orbScale + CGFloat(i + 1) * 20)
+                        .frame(width: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20,
+                               height: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20)
                 }
             }
 
