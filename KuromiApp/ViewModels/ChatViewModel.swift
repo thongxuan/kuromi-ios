@@ -84,8 +84,6 @@ class ChatViewModel: ObservableObject {
                 self.inputLevel = 0.0
                 if self.isToggleEnabled {
                     self.startUserSpeaking()
-                } else {
-                    self.resumeWakeWord()
                 }
             }
         }
@@ -97,7 +95,6 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.chatState = .idle
                 self.inputLevel = 0.0
-                self.resumeWakeWord()
             }
         }
 
