@@ -31,6 +31,8 @@ class ChatViewModel: ObservableObject {
     private var connectTimer: Timer?
     private var silenceTimer: Timer?
     private var accumulatedText: String = ""
+    private var sessionStopped: Bool = false      // true after stop phrase — ignore new AI events
+    private var stopTimeoutTimer: Timer?           // 5s fallback to fully reset
 
     init() {
         settings = AppSettings.load()!
@@ -85,16 +87,25 @@ class ChatViewModel: ObservableObject {
         }
         relayService.onAIText = { [weak self] text in
             DispatchQueue.main.async {
-                guard !text.isEmpty else { return }
-                self?.messages.append(Message(role: .assistant, text: text))
+                guard let self = self, !text.isEmpty else { return }
+                guard !self.sessionStopped else { return }
+                self.messages.append(Message(role: .assistant, text: text))
             }
         }
         relayService.onTTSStart = { [weak self] in
-            DispatchQueue.main.async { self?.chatState = .aiSpeaking }
+            DispatchQueue.main.async {
+                guard let self = self, !self.sessionStopped else { return }
+                self.chatState = .aiSpeaking
+            }
         }
         relayService.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                // If stopped, this is the last response — fully reset
+                if self.sessionStopped {
+                    self.finalizeStop()
+                    return
+                }
                 self.chatState = .idle
                 self.inputLevel = 0.0
                 if self.isToggleEnabled {
@@ -199,6 +210,9 @@ class ChatViewModel: ObservableObject {
     }
 
     private func startUserSpeaking(playBeep: Bool = false) {
+        stopTimeoutTimer?.invalidate()
+        stopTimeoutTimer = nil
+        sessionStopped = false
         wakeWordService.stop()
         chatState = .userSpeaking
         currentTranscript = ""
@@ -217,13 +231,27 @@ class ChatViewModel: ObservableObject {
     private func stopUserSpeaking() {
         silenceTimer?.invalidate()
         silenceTimer = nil
+        sessionStopped = true
         chatState = .idle
         AudioServicesPlaySystemSound(1114) // iOS recording stop sound — play before stopMic closes audio session
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.relayService.stopMic()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                self?.resumeWakeWord()
-            }
+        }
+        // 5s fallback — if no TTS end arrives, reset anyway
+        stopTimeoutTimer?.invalidate()
+        stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            self?.finalizeStop()
+        }
+    }
+
+    private func finalizeStop() {
+        stopTimeoutTimer?.invalidate()
+        stopTimeoutTimer = nil
+        sessionStopped = false
+        chatState = .idle
+        inputLevel = 0.0
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.resumeWakeWord()
         }
     }
 }
