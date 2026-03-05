@@ -135,17 +135,23 @@ struct ChatView: View {
             switch viewModel.chatState {
             case .connecting: return "Connecting to gateway…"
             case .idle: return viewModel.wakePhrase.isEmpty ? "Tap to speak" : "Tap or say '\(viewModel.wakePhrase)'"
-            case .userSpeaking: return ""
-            case .aiSpeaking: return ""
+            case .userSpeaking: return "Listening…"
+            case .aiSpeaking: return "Speaking…"
             case .error(let msg): return msg
             }
         }()
         let color: Color = {
             switch viewModel.chatState {
-            case .userSpeaking: return .white
-            case .aiSpeaking: return .purple.opacity(0.7)
+            case .userSpeaking: return .white.opacity(0.5)
+            case .aiSpeaking: return .purple.opacity(0.5)
             case .error: return .red
             default: return .gray
+            }
+        }()
+        let visible: Bool = {
+            switch viewModel.chatState {
+            case .userSpeaking, .aiSpeaking: return false
+            default: return true
             }
         }()
         Text(label)
@@ -154,7 +160,7 @@ struct ChatView: View {
             .multilineTextAlignment(.center)
             .lineLimit(2)
             .padding(.horizontal, 32)
-    
+            .opacity(visible ? 1 : 0)  // hide via opacity — keeps layout stable
     }
 
     // MARK: - Orb Button
