@@ -98,6 +98,12 @@ class ChatViewModel: ObservableObject {
             }
         }
 
+        relayService.onStopPhrase = { [weak self] in
+            DispatchQueue.main.async {
+                self?.stopUserSpeaking()
+            }
+        }
+
         relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, stopPhrase: settings.stopPhrase)
         setupWakeWord()
     }
