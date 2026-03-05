@@ -14,10 +14,9 @@ struct ChatView: View {
                 // Top bar
                 topBar
 
-                Spacer()
-
                 // Transcript list — only shown when showText is true
                 if showText {
+                    Spacer()
                     TranscriptListView(
                         messages: viewModel.messages,
                         currentTranscript: viewModel.currentTranscript,
@@ -188,31 +187,25 @@ struct OrbView: View {
     private var orbColor: Color {
         switch chatState {
         case .idle, .connecting: return Color.white.opacity(0.13)
-        case .userSpeaking: return Color.purple.opacity(0.88)
-        case .aiSpeaking: return Color.purple.opacity(0.6)
+        case .userSpeaking: return Color.gray.opacity(0.6)   // xám khi anh nói
+        case .aiSpeaking: return Color.purple.opacity(0.88)  // tím khi em trả lời
         case .error: return Color.red.opacity(0.4)
         }
     }
 
     var body: some View {
         ZStack {
-            // Sun rays (AI speaking only)
-            if case .aiSpeaking = chatState {
-                SunRaysView(orbRadius: orbBase / 2)
-                    .frame(width: containerSize, height: containerSize)
-            }
-
-            // Breathing rings (user speaking)
+            // Breathing rings (user speaking only, no rays)
             if case .userSpeaking = chatState {
                 ForEach(0..<2, id: \.self) { i in
                     Circle()
-                        .strokeBorder(Color.purple.opacity(0.12 - Double(i) * 0.04), lineWidth: 1)
+                        .strokeBorder(Color.gray.opacity(0.15 - Double(i) * 0.05), lineWidth: 1)
                         .frame(width: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20,
                                height: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20)
                 }
             }
 
-            // Main orb — fixed size, chỉ scale
+            // Main orb
             Circle()
                 .fill(
                     RadialGradient(
