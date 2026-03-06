@@ -17,6 +17,7 @@ class GatewayService: NSObject, ObservableObject {
     private var gatewayToken: String = ""
     private var pendingRequests: [String: CheckedContinuation<[String: Any], Error>] = [:]
     private var sessionKey: String = "kuromi-ios-voice"
+    private var activeRunId: String? = nil   // only process events matching this runId
 
     var onResponse: ((String) -> Void)?      // full final text
     var onDelta: ((String) -> Void)?         // streaming delta
@@ -128,6 +129,10 @@ class GatewayService: NSObject, ObservableObject {
                 guard let payload = json["payload"] as? [String: Any],
                       let stream = payload["stream"] as? String else { return }
 
+                // Only process events matching our active runId
+                let runId = payload["runId"] as? String
+                if let active = activeRunId, runId != active { return }
+
                 if stream == "assistant",
                    let data = payload["data"] as? [String: Any] {
                     if let delta = data["delta"] as? String, !delta.isEmpty {
@@ -138,12 +143,20 @@ class GatewayService: NSObject, ObservableObject {
                     }
                 } else if stream == "lifecycle",
                           let data = payload["data"] as? [String: Any],
-                          let phase = data["phase"] as? String, phase == "end" {
-                    DispatchQueue.main.async { self.onResponseComplete?() }
+                          let phase = data["phase"] as? String {
+                    if phase == "start", let rid = runId { activeRunId = rid }
+                    if phase == "end" {
+                        activeRunId = nil
+                        DispatchQueue.main.async { self.onResponseComplete?() }
+                    }
                 }
             }
         case "res":
             let ok = json["ok"] as? Bool ?? false
+            if ok, let payload = json["payload"] as? [String: Any],
+               let runId = payload["runId"] as? String {
+                activeRunId = runId  // track runId from chat.send response
+            }
             if ok {
                 DispatchQueue.main.async { self.state = .connected }
             }
