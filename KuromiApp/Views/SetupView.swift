@@ -312,6 +312,7 @@ struct LanguageSheet: View {
                                 .foregroundColor(.purple)
                             }
                             .padding(.leading, 4)
+                            .padding(.top, 4)
                         }
                     }
 
