@@ -116,6 +116,7 @@ class ChatViewModel: ObservableObject {
                 if self.isTextMode {
                     self.onDeviceSTTService.start(language: self.settings.sttLanguage)
                 } else {
+                    self.setupAudioSession()
                     self.relayService.startMic()
                 }
             }
@@ -123,6 +124,7 @@ class ChatViewModel: ObservableObject {
             if isTextMode {
                 onDeviceSTTService.start(language: settings.sttLanguage)
             } else {
+                setupAudioSession()
                 relayService.startMic()
             }
         }
