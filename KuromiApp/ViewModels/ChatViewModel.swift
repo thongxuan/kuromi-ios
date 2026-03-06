@@ -390,10 +390,18 @@ class ChatViewModel: ObservableObject {
 
         onDeviceTTSService.onFinish = { [weak self] in
             guard let self = self else { return }
+            guard !self.isStopping else { self.finalizeStop(fromTTSEnd: true); return }
             self.chatState = .idle
+            self.inputLevel = 0.0
             self.accumulatedResponse = ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.resumeWakeWord()
+                guard let self = self else { return }
+                if self.settings.wakePhrase.isEmpty {
+                    // No wake phrase — restart listening automatically
+                    self.startChat(beep: false)
+                } else {
+                    self.resumeWakeWord()
+                }
             }
         }
     }
