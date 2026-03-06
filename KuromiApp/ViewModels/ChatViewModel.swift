@@ -42,6 +42,7 @@ class ChatViewModel: ObservableObject {
     private var connectTimer: Timer?
     private var stopTimeoutTimer: Timer?
     private var isStopping: Bool = false      // true between stopChat() and finalizeStop()
+    private var speakerStateBeforeHeadphones: Bool? = nil  // saved state when headphones connect
     private var ignoreNextTTSEnd: Bool = false
     private var pendingWakeWordResume: Bool = false  // resume wake word after TTS end/timeout
 
@@ -485,20 +486,31 @@ class ChatViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // When AirPods (or any headphones) connect, auto-disable loud speaker
+        // When AirPods/headphones connect → disable loud speaker; disconnect → restore previous state
         NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 guard let self = self,
                       let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                      AVAudioSession.RouteChangeReason(rawValue: reason) == .newDeviceAvailable else { return }
-                // Check if new route has headphones/AirPods
+                      let routeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
                 let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
                 let hasHeadphones = outputs.contains { $0.portType == .headphones || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothHFP }
-                if hasHeadphones && self.isLoudSpeaker {
-                    self.isLoudSpeaker = false
-                    UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
-                    try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
+                switch routeReason {
+                case .newDeviceAvailable:
+                    if hasHeadphones && self.isLoudSpeaker {
+                        self.speakerStateBeforeHeadphones = true
+                        self.isLoudSpeaker = false
+                        UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
+                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
+                    }
+                case .oldDeviceUnavailable:
+                    if !hasHeadphones, let previous = self.speakerStateBeforeHeadphones {
+                        self.isLoudSpeaker = previous
+                        UserDefaults.standard.set(previous, forKey: "kuromi_loud_speaker")
+                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(previous ? .speaker : .none)
+                        self.speakerStateBeforeHeadphones = nil
+                    }
+                default: break
                 }
             }
             .store(in: &cancellables)
