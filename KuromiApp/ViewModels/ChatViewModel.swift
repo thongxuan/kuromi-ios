@@ -261,8 +261,7 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.chatState = .aiSpeaking
-                let session = AVAudioSession.sharedInstance()
-                try? session.overrideOutputAudioPort(self.isLoudSpeaker ? .speaker : .none)
+                self.setupAudioSession()
             }
         }
 
