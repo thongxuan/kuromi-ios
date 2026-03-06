@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		SP000002 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP000001 /* SoundPlayer.swift */; };
-		SB000003 /* start_beep.wav in Resources */ = {isa = PBXBuildFile; fileRef = SB000001 /* start_beep.wav */; };
-		SB000004 /* stop_beep.wav in Resources */ = {isa = PBXBuildFile; fileRef = SB000002 /* stop_beep.wav */; };
 		AA000001 /* KuromiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* KuromiApp.swift */; };
 		AA000002 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */; };
 		AA000003 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* Message.swift */; };
@@ -29,8 +27,6 @@
 
 /* Begin PBXFileReference section */
 		SP000001 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
-		SB000001 /* start_beep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = start_beep.wav; sourceTree = "<group>"; };
-		SB000002 /* stop_beep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = stop_beep.wav; sourceTree = "<group>"; };
 		AA100001 /* KuromiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuromiApp.swift; sourceTree = "<group>"; };
 		AA100002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AA100003 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
@@ -71,7 +67,6 @@
 				AA400003 /* Views */,
 				AA400004 /* Services */,
 				AA400005 /* Helpers */,
-				AA400006 /* Resources */,
 			);
 			path = KuromiApp;
 			sourceTree = "<group>";
@@ -124,15 +119,6 @@
 				SP000001 /* SoundPlayer.swift */,
 			);
 			path = Helpers;
-			sourceTree = "<group>";
-		};
-		AA400006 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				SB000001 /* start_beep.wav */,
-				SB000002 /* stop_beep.wav */,
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 		AA500000 = {
@@ -209,8 +195,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				SB000003 /* start_beep.wav in Resources */,
-				SB000004 /* stop_beep.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
