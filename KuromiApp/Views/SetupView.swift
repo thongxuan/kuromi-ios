@@ -275,52 +275,48 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
 
-                    if deviceSupports { Toggle(isOn: $useOnDeviceVoice) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("On-device voice")
-                                .font(.body).foregroundColor(.appLabel)
-                            Text("STT + TTS on-device, direct gateway")
-                                .font(.caption2).foregroundColor(.appSecondaryLabel)
-                        }
-                    }
-                    .tint(.purple)
-                    .padding(.horizontal, 16).frame(height: 64)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.appFieldBackground)
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.appBorder, lineWidth: 1))
-                    )
-                    } // if deviceSupports
-
-                    if useOnDeviceVoice && deviceSupports {
+                    if deviceSupports {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
                                 Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
-                                Text("Voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                                Text("On-device voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
                             }
-                            Menu {
-                                ForEach(availableVoices, id: \.identifier) { voice in
-                                    Button(action: { onDeviceVoiceId = voice.identifier }) {
-                                        Label(voiceDisplayName(voice), systemImage: onDeviceVoiceId == voice.identifier ? "checkmark" : "")
+                            HStack(spacing: 12) {
+                                // Voice picker — only when toggle on
+                                if useOnDeviceVoice {
+                                    Menu {
+                                        ForEach(availableVoices, id: \.identifier) { voice in
+                                            Button(action: { onDeviceVoiceId = voice.identifier }) {
+                                                Label(voiceDisplayName(voice), systemImage: onDeviceVoiceId == voice.identifier ? "checkmark" : "")
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(selectedVoiceName)
+                                                .foregroundColor(.appLabel).font(.body)
+                                            Spacer()
+                                            Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
+                                        }
+                                        .padding(.horizontal, 16).frame(height: 52)
                                     }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(selectedVoiceName)
-                                        .foregroundColor(.appLabel).font(.body)
+                                    .frame(maxWidth: .infinity)
+                                } else {
+                                    Text("Off")
+                                        .foregroundColor(.appSecondaryLabel).font(.body)
+                                        .padding(.horizontal, 16).frame(height: 52)
                                     Spacer()
-                                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
                                 }
-                                .padding(.horizontal, 16).frame(height: 52)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.appFieldBackground)
-                                        .overlay(RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(Color.appBorder, lineWidth: 1))
-                                )
+                                Toggle("", isOn: $useOnDeviceVoice)
+                                    .tint(.purple)
+                                    .labelsHidden()
+                                    .padding(.trailing, 16)
                             }
-                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.appFieldBackground)
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(Color.appBorder, lineWidth: 1))
+                            )
                         }
                     }
 
