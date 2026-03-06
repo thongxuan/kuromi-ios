@@ -13,6 +13,8 @@ class SetupViewModel: ObservableObject {
     @Published var stopPhrase: String = "dừng lại"
     @Published var useOnDeviceSTT: Bool = false
     @Published var useSpeaker: Bool = false
+    @Published var useOnDeviceTTS: Bool = false
+    @Published var onDeviceTTSLanguage: String = "vi-VN"
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
@@ -38,6 +40,8 @@ class SetupViewModel: ObservableObject {
             stopPhrase = s.stopPhrase
             useOnDeviceSTT = s.useOnDeviceSTT
             useSpeaker = s.useSpeaker
+            useOnDeviceTTS = s.useOnDeviceTTS
+            onDeviceTTSLanguage = s.onDeviceTTSLanguage
         }
     }
 
@@ -57,6 +61,8 @@ class SetupViewModel: ObservableObject {
         )
         s.useOnDeviceSTT = useOnDeviceSTT
         s.useSpeaker = useSpeaker
+        s.useOnDeviceTTS = useOnDeviceTTS
+        s.onDeviceTTSLanguage = onDeviceTTSLanguage
         s.save()
         return s
     }

@@ -93,7 +93,9 @@ struct SetupView: View {
                 sttLanguage: $viewModel.sttLanguage,
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase,
-                useOnDeviceSTT: $viewModel.useOnDeviceSTT
+                useOnDeviceSTT: $viewModel.useOnDeviceSTT,
+                useOnDeviceTTS: $viewModel.useOnDeviceTTS,
+                onDeviceTTSLanguage: $viewModel.onDeviceTTSLanguage
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -196,7 +198,21 @@ struct LanguageSheet: View {
     @Binding var wakePhrase: String
     @Binding var stopPhrase: String
     @Binding var useOnDeviceSTT: Bool
+    @Binding var useOnDeviceTTS: Bool
+    @Binding var onDeviceTTSLanguage: String
     @Environment(\.dismiss) var dismiss
+
+    private let ttsLanguages: [(code: String, name: String, flag: String)] = [
+        ("vi-VN", "Tiếng Việt", "🇻🇳"),
+        ("en-US", "English (US)", "🇺🇸"),
+        ("en-GB", "English (UK)", "🇬🇧"),
+        ("ja-JP", "日本語", "🇯🇵"),
+        ("zh-CN", "中文 (简体)", "🇨🇳"),
+        ("ko-KR", "한국어", "🇰🇷"),
+        ("fr-FR", "Français", "🇫🇷"),
+        ("de-DE", "Deutsch", "🇩🇪"),
+        ("es-ES", "Español", "🇪🇸"),
+    ]
 
     var body: some View {
         ZStack {
@@ -259,6 +275,55 @@ struct LanguageSheet: View {
                             .overlay(RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(Color.appBorder, lineWidth: 1))
                     )
+
+                    Toggle(isOn: $useOnDeviceTTS) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("On-device TTS (Apple Neural)")
+                                .font(.body).foregroundColor(.appLabel)
+                            Text("No internet needed — uses Apple voice")
+                                .font(.caption2).foregroundColor(.appSecondaryLabel)
+                        }
+                    }
+                    .tint(.purple)
+                    .padding(.horizontal, 16).frame(height: 64)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.appFieldBackground)
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.appBorder, lineWidth: 1))
+                    )
+
+                    if useOnDeviceTTS {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
+                                Text("TTS Language").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                            }
+                            Menu {
+                                ForEach(ttsLanguages, id: \.code) { lang in
+                                    Button(action: { onDeviceTTSLanguage = lang.code }) {
+                                        Label("\(lang.flag) \(lang.name)", systemImage: onDeviceTTSLanguage == lang.code ? "checkmark" : "")
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    let current = ttsLanguages.first { $0.code == onDeviceTTSLanguage }
+                                    Text("\(current?.flag ?? "🔊") \(current?.name ?? onDeviceTTSLanguage)")
+                                        .foregroundColor(.appLabel).font(.body)
+                                    Spacer()
+                                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
+                                }
+                                .padding(.horizontal, 16).frame(height: 52)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.appFieldBackground)
+                                        .overlay(RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.appBorder, lineWidth: 1))
+                                )
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
 
                 }
 
