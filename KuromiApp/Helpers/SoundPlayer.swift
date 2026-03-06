@@ -1,11 +1,10 @@
 import AudioToolbox
+import AVFoundation
 
 enum SoundPlayer {
     static func playStart(completion: (() -> Void)? = nil) {
-        AudioServicesPlaySystemSound(1111)
-        if let completion {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { completion() }
-        }
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        AudioServicesPlaySystemSoundWithCompletion(1111) { completion?() }
     }
 
     static func playStop(completion: (() -> Void)? = nil) {
