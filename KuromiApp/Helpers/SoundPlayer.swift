@@ -6,7 +6,7 @@ enum SoundPlayer {
         DispatchQueue.global(qos: .userInitiated).async {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             AudioServicesPlaySystemSound(1111)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 completion?()
             }
         }
@@ -16,7 +16,7 @@ enum SoundPlayer {
         DispatchQueue.global(qos: .userInitiated).async {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             AudioServicesPlaySystemSound(1110)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 completion?()
             }
         }
