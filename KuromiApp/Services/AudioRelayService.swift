@@ -205,7 +205,7 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.onTTSStart?()
             case "tts_end":
                 self.isReceivingTTS = false
-                self.playTTSBuffer()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.playTTSBuffer() }
             case "mic_stop":
                 self.stopMic()
                 self.onMicStop?()
