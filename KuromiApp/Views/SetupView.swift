@@ -201,6 +201,7 @@ struct LanguageSheet: View {
     @Binding var useOnDeviceVoice: Bool
     @Binding var onDeviceVoiceId: String
     var deviceSupports: Bool = true
+    @State private var previewSynthesizer = AVSpeechSynthesizer()
     @Environment(\.dismiss) var dismiss
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
@@ -345,7 +346,8 @@ struct LanguageSheet: View {
                                     if let voice = AVSpeechSynthesisVoice(identifier: onDeviceVoiceId) {
                                         utterance.voice = voice
                                     }
-                                    AVSpeechSynthesizer().speak(utterance)
+                                    previewSynthesizer.stopSpeaking(at: .immediate)
+                                    previewSynthesizer.speak(utterance)
                                 }) {
                                     Image(systemName: "play.circle")
                                         .font(.title3)
