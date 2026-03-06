@@ -206,10 +206,17 @@ struct LanguageSheet: View {
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
         let langPrefix = String(sttLanguage.prefix(2))
-        // Only show compact voices — always installed; enhanced/premium need separate download
         return AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix(langPrefix) && $0.quality == .default }
-            .sorted { $0.name < $1.name }
+            .filter { $0.language.hasPrefix(langPrefix) }
+            .sorted { lhs, rhs in
+                // compact first (always local), then by name
+                if lhs.quality == rhs.quality { return lhs.name < rhs.name }
+                return lhs.quality.rawValue < rhs.quality.rawValue
+            }
+    }
+
+    private func voiceIsLocal(_ voice: AVSpeechSynthesisVoice) -> Bool {
+        voice.quality == .default
     }
 
     private func voiceDisplayName(_ voice: AVSpeechSynthesisVoice) -> String {
@@ -318,13 +325,19 @@ struct LanguageSheet: View {
                             HStack(spacing: 0) {
                                 Menu {
                                     ForEach(availableVoices, id: \.identifier) { voice in
-                                        Button(action: { onDeviceVoiceId = voice.identifier }) {
+                                        Button(action: {
+                                            if voiceIsLocal(voice) { onDeviceVoiceId = voice.identifier }
+                                        }) {
                                             if onDeviceVoiceId == voice.identifier {
                                                 Label(voiceDisplayName(voice), systemImage: "checkmark")
-                                            } else {
+                                            } else if voiceIsLocal(voice) {
                                                 Text(voiceDisplayName(voice))
+                                            } else {
+                                                Label(voiceDisplayName(voice), systemImage: "icloud.and.arrow.down")
+                                                    .foregroundColor(.secondary)
                                             }
                                         }
+                                        .disabled(!voiceIsLocal(voice))
                                     }
                                 } label: {
                                     HStack {
