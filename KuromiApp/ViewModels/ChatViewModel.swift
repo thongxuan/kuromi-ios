@@ -128,6 +128,9 @@ class ChatViewModel: ObservableObject {
         // Stop TTS if playing (barge-in)
         if isOnDeviceMode && onDeviceTTSService.isSpeaking {
             onDeviceTTSService.stop()
+        } else if !isOnDeviceMode {
+            // Stop relay TTS player so it doesn't compete with the start beep
+            relayService.stopTTSPlayback()
         }
 
         wakeWordService.stop()

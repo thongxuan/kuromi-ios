@@ -155,6 +155,15 @@ class AudioRelayService: NSObject, ObservableObject {
         print("[relay] mic stopped")
     }
 
+    func stopTTSPlayback() {
+        guard isPlayingTTS else { return }
+        audioPlayer?.stop()
+        audioPlayer = nil
+        isPlayingTTS = false
+        isReceivingTTS = false
+        ttsBuffer = Data()
+    }
+
     func sendTranscript(_ text: String) {
         sendJSON(["type": "transcript", "text": text])
     }
