@@ -399,10 +399,7 @@ class ChatViewModel: ObservableObject {
                 } else {
                     self.chatState = .idle
                     self.inputLevel = 0.0
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                        self?.setupAudioSession()
-                        self?.resumeWakeWord()
-                    }
+                    if self.isToggleEnabled { self.startChat() }
                 }
             }
         }
