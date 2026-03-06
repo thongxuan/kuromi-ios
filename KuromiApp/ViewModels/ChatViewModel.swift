@@ -161,32 +161,17 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
-        // Play stop sound — use AudioServicesPlaySystemSound (no session switch needed)
-        AudioServicesPlaySystemSound(1110) // end_record.caf
+        // Stop mic, deactivate session, play stop sound cleanly
+        if isOnDeviceMode { onDeviceSTTService.stop() } else { relayService.stopMic() }
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        AudioServicesPlaySystemSoundWithCompletion(1110) {}
 
-        if isOnDeviceMode {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                guard let self = self else { return }
-                self.onDeviceSTTService.stop()
-            }
-            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
-            stopTimeoutTimer?.invalidate()
-            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
-                self.pendingWakeWordResume = false
-                self.finalizeStop()
-            }
-        } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                self?.relayService.stopMic()
-            }
-            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
-            stopTimeoutTimer?.invalidate()
-            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
-                self.pendingWakeWordResume = false
-                self.finalizeStop()
-            }
+        // 5s fallback — if TTS never arrives, finalize anyway
+        stopTimeoutTimer?.invalidate()
+        stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
+            self.pendingWakeWordResume = false
+            self.finalizeStop()
         }
     }
 
