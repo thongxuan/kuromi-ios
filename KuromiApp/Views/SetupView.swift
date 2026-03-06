@@ -262,6 +262,22 @@ struct LanguageSheet: View {
                                 .strokeBorder(Color.appBorder, lineWidth: 1))
                     )
 
+                    Toggle(isOn: $useSpeaker) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Use speaker")
+                                .font(.body).foregroundColor(.appLabel)
+                            Text("Play TTS through loudspeaker")
+                                .font(.caption2).foregroundColor(.appSecondaryLabel)
+                        }
+                    }
+                    .tint(.purple)
+                    .padding(.horizontal, 16).frame(height: 64)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.appFieldBackground)
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.appBorder, lineWidth: 1))
+                    )
                 }
 
                 }
