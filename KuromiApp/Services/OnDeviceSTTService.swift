@@ -16,6 +16,7 @@ class OnDeviceSTTService {
     private var silenceTimer: Timer?
     private let silenceTimeout: TimeInterval = 1.5
     private var lastTranscript = ""
+    private var finalTriggered = false
 
     func start(language: String) {
         guard !isActive else { return }
@@ -44,7 +45,9 @@ class OnDeviceSTTService {
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let request = recognitionRequest else { isActive = false; return }
         request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
+        // requiresOnDeviceRecognition=true can fail with error 1101 if model not downloaded
+        // Always use false — server-based STT as fallback is more reliable
+        request.requiresOnDeviceRecognition = false
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self, self.isActive else { return }
@@ -71,7 +74,8 @@ class OnDeviceSTTService {
                 if result.isFinal {
                     self.clearSilenceTimer()
                     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
+                    if !trimmed.isEmpty && !self.finalTriggered {
+                        self.finalTriggered = true
                         self.onFinalTranscript?(trimmed)
                     }
                 }
@@ -105,6 +109,7 @@ class OnDeviceSTTService {
     func stop() {
         guard isActive else { return }
         isActive = false
+        finalTriggered = false
         clearSilenceTimer()
 
         recognitionRequest?.endAudio()
@@ -127,8 +132,9 @@ class OnDeviceSTTService {
         silenceTimer = Timer.scheduledTimer(withTimeInterval: silenceTimeout, repeats: false) { [weak self] _ in
             guard let self = self, self.isActive else { return }
             let text = self.lastTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return }
+            guard !text.isEmpty && !self.finalTriggered else { return }
             self.lastTranscript = ""
+            self.finalTriggered = true
             print("[stt] silence timeout, finalizing: \(text.prefix(60))")
             self.onFinalTranscript?(text)
         }

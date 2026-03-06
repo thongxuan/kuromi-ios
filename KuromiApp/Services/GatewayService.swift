@@ -15,11 +15,9 @@ class GatewayService: NSObject, ObservableObject {
     private var urlSession: URLSession!
     private var gatewayURL: String = ""
     private var gatewayToken: String = ""
-    private var pendingRequests: [String: CheckedContinuation<[String: Any], Error>] = [:]
     private var sessionKey: String = "kuromi-ios-voice"
     private var activeRunId: String? = nil   // only process events matching this runId
 
-    var onResponse: ((String) -> Void)?      // full final text
     var onDelta: ((String) -> Void)?         // streaming delta
     var onResponseComplete: (() -> Void)?    // response finished
 
@@ -140,9 +138,6 @@ class GatewayService: NSObject, ObservableObject {
                     if let delta = data["delta"] as? String, !delta.isEmpty {
                         DispatchQueue.main.async { self.onDelta?(delta) }
                     }
-                    if let fullText = data["text"] as? String {
-                        DispatchQueue.main.async { self.onResponse?(fullText) }
-                    }
                 } else if stream == "lifecycle",
                           let data = payload["data"] as? [String: Any],
                           let phase = data["phase"] as? String {
@@ -176,6 +171,13 @@ extension GatewayService: URLSessionWebSocketDelegate {
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        DispatchQueue.main.async { self.state = .disconnected }
+        DispatchQueue.main.async {
+            self.state = .disconnected
+            guard !self.gatewayURL.isEmpty else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self = self, case .disconnected = self.state else { return }
+                self.connect(to: self.gatewayURL, token: self.gatewayToken)
+            }
+        }
     }
 }
