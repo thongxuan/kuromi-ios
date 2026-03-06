@@ -5,6 +5,7 @@ class OnDeviceTTSService: NSObject {
     var onStart: (() -> Void)?
     var onFinish: (() -> Void)?
 
+    var useLoudSpeaker: Bool = false
     private let synthesizer = AVSpeechSynthesizer()
     private var voiceId: String = ""
     private var language: String = "en"
@@ -47,6 +48,11 @@ class OnDeviceTTSService: NSObject {
 
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.volume = 1.0
+
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
+        try? session.setActive(true)
+        try? session.overrideOutputAudioPort(useLoudSpeaker ? .speaker : .none)
 
         onStart?()
         synthesizer.speak(utterance)

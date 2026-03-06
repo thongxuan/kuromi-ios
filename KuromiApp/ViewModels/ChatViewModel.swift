@@ -351,6 +351,7 @@ class ChatViewModel: ObservableObject {
 
             self.messages.append(Message(role: .assistant, text: response))
             self.chatState = .aiSpeaking
+            self.onDeviceTTSService.useLoudSpeaker = self.isLoudSpeaker
             self.onDeviceTTSService.speak(
                 text: response,
                 voiceId: self.settings.onDeviceVoiceId,
