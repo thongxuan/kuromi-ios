@@ -241,8 +241,6 @@ class AudioRelayService: NSObject, ObservableObject {
             try session.setActive(true)
             if useSpeaker {
                 try? session.overrideOutputAudioPort(.speaker)
-            } else {
-                try? session.overrideOutputAudioPort(.none)
             }
             audioPlayer = try AVAudioPlayer(contentsOf: tmp)
             audioPlayer?.delegate = self
