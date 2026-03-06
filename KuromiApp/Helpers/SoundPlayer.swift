@@ -1,17 +1,42 @@
-import AudioToolbox
+import AVFoundation
 
-enum SoundPlayer {
+/// Plays UI beep sounds via AVAudioPlayer with .ambient session —
+/// follows system media volume, does not interfere with recording session.
+class SoundPlayer: NSObject {
+    private static var player: AVAudioPlayer?
+
     static func playStart(completion: (() -> Void)? = nil) {
-        AudioServicesPlaySystemSound(1111)
-        if let completion {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { completion() }
-        }
+        play(named: "start_beep", completion: completion)
     }
 
     static func playStop(completion: (() -> Void)? = nil) {
-        AudioServicesPlaySystemSound(1110)
-        if let completion {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { completion() }
+        play(named: "stop_beep", completion: completion)
+    }
+
+    private static func play(named name: String, completion: (() -> Void)?) {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "wav") else {
+            print("[sound] missing \(name).wav — falling back")
+            completion?()
+            return
+        }
+        do {
+            // .ambient: follows media volume, mixes with other audio, won't interrupt mic
+            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            player = try AVAudioPlayer(contentsOf: url)
+            player?.volume = 1.0
+            player?.prepareToPlay()
+            player?.play()
+            print("[sound] playing \(name)")
+            if let completion {
+                let duration = player?.duration ?? 0.2
+                DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.05) {
+                    completion()
+                }
+            }
+        } catch {
+            print("[sound] error playing \(name): \(error)")
+            completion?()
         }
     }
 }

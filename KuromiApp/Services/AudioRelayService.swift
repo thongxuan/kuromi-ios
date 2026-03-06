@@ -235,8 +235,11 @@ class AudioRelayService: NSObject, ObservableObject {
 
     private func playTTSBuffer() {
         guard !ttsBuffer.isEmpty else { isPlayingTTS = false; onTTSEnd?(); return }
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kuromi_tts_\(UUID().uuidString).wav")
         do {
-            audioPlayer = try AVAudioPlayer(data: ttsBuffer)
+            try ttsBuffer.write(to: tmp)
+            audioPlayer = try AVAudioPlayer(contentsOf: tmp)
             audioPlayer?.delegate = self
             audioPlayer?.volume = 1.0
             audioPlayer?.play()

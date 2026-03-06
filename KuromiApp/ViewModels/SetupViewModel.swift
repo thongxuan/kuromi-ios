@@ -67,4 +67,6 @@ class SetupViewModel: ObservableObject {
         s.save()
         return s
     }
+
+    func reloadSettings() {}
 }

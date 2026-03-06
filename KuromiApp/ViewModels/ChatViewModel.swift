@@ -48,7 +48,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - Init
 
     init() {
-        settings = AppSettings.load() ?? AppSettings.loadOrDefault()
+        settings = AppSettings.load()!
         if isOnDeviceMode {
             setupGatewayDirect()
             setupOnDeviceTTS()
@@ -78,7 +78,6 @@ class ChatViewModel: ObservableObject {
         onDeviceSTTService.stop()
         onDeviceTTSService.stop()
         wakeWordService.stop()
-        if !isOnDeviceMode { relayService.disconnect() }
     }
 
     func reconnect() {
@@ -138,19 +137,13 @@ class ChatViewModel: ObservableObject {
         if beep {
             SoundPlayer.playStart { [weak self] in
                 guard let self = self else { return }
-                // setupAudioSession (setActive) can block main thread — run on background
-                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                    guard let self = self else { return }
-                    self.setupAudioSession()
-                    DispatchQueue.main.async {
-                        if self.isOnDeviceMode {
-                            self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                        } else {
-                            self.relayService.startMic()
-                        }
-                        self.isOrbLocked = false
-                    }
+                self.setupAudioSession()
+                if self.isOnDeviceMode {
+                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                } else {
+                    self.relayService.startMic()
                 }
+                self.isOrbLocked = false
             }
         } else {
             setupAudioSession()
@@ -325,6 +318,8 @@ class ChatViewModel: ObservableObject {
                     self.finalizeStop(fromMicStop: true)
                 } else {
                     print("[sound] playing 1114 — STT done (relay mic_stop)")
+                    let s = AVAudioSession.sharedInstance()
+                    try? s.setActive(false, options: .notifyOthersOnDeactivation)
                     SoundPlayer.playStop()
                 }
             }
@@ -340,12 +335,10 @@ class ChatViewModel: ObservableObject {
         gatewayService.onDelta = { [weak self] delta in
             guard let self = self else { return }
             self.accumulatedResponse += delta
-            self.currentAIResponse = self.accumulatedResponse
         }
 
         gatewayService.onResponseComplete = { [weak self] in
             guard let self = self else { return }
-            self.currentAIResponse = ""
             let response = self.accumulatedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !response.isEmpty else {
                 self.chatState = .idle
@@ -444,6 +437,8 @@ class ChatViewModel: ObservableObject {
             self.inputLevel = 0.0
             self.currentTranscript = ""
             print("[sound] playing 1114 — STT done (on-device final)")
+            let s = AVAudioSession.sharedInstance()
+            try? s.setActive(false, options: .notifyOthersOnDeactivation)
             SoundPlayer.playStop()
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
