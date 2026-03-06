@@ -44,7 +44,9 @@ class OnDeviceSTTService {
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let request = recognitionRequest else { isActive = false; return }
         request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
+        // requiresOnDeviceRecognition=true can fail with error 1101 if model not downloaded
+        // Always use false — server-based STT as fallback is more reliable
+        request.requiresOnDeviceRecognition = false
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self, self.isActive else { return }
