@@ -303,6 +303,7 @@ class ChatViewModel: ObservableObject {
             }
         }
 
+        relayService.useSpeaker = settings.useSpeaker
         relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, textMode: settings.useOnDeviceSTT)
         if isTextMode { setupOnDeviceSTT() }
         setupWakeWord()

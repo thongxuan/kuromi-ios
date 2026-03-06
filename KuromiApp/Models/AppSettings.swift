@@ -7,6 +7,7 @@ struct AppSettings: Codable {
     var wakePhrase: String = "kuromi"
     var stopPhrase: String = "dừng lại"
     var useOnDeviceSTT: Bool = false
+    var useSpeaker: Bool = false
 
     static let defaultsKey = "kuromi_settings"
 

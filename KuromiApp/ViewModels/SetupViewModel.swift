@@ -12,6 +12,7 @@ class SetupViewModel: ObservableObject {
     @Published var wakePhrase: String = "kuromi"
     @Published var stopPhrase: String = "dừng lại"
     @Published var useOnDeviceSTT: Bool = false
+    @Published var useSpeaker: Bool = false
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
@@ -36,6 +37,7 @@ class SetupViewModel: ObservableObject {
             wakePhrase = s.wakePhrase
             stopPhrase = s.stopPhrase
             useOnDeviceSTT = s.useOnDeviceSTT
+            useSpeaker = s.useSpeaker
         }
     }
 
@@ -54,6 +56,7 @@ class SetupViewModel: ObservableObject {
             stopPhrase: stopPhrase.trimmingCharacters(in: .whitespaces).lowercased()
         )
         s.useOnDeviceSTT = useOnDeviceSTT
+        s.useSpeaker = useSpeaker
         s.save()
         return s
     }

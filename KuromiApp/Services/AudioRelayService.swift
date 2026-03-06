@@ -29,6 +29,7 @@ class AudioRelayService: NSObject, ObservableObject {
     private var audioEngine = AVAudioEngine()
     private var audioPlayer: AVAudioPlayer?
     private var ttsBuffer = Data()
+    var useSpeaker: Bool = false
     private var isReceivingTTS = false
 
     private var reconnectTimer: Timer?
@@ -238,6 +239,11 @@ class AudioRelayService: NSObject, ObservableObject {
             try session.setCategory(.playAndRecord, mode: .default,
                                     options: [.allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
+            if useSpeaker {
+                try? session.overrideOutputAudioPort(.speaker)
+            } else {
+                try? session.overrideOutputAudioPort(.none)
+            }
             audioPlayer = try AVAudioPlayer(contentsOf: tmp)
             audioPlayer?.delegate = self
             audioPlayer?.volume = 1.0
