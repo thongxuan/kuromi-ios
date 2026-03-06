@@ -2,7 +2,6 @@ import Foundation
 import AVFoundation
 import Combine
 import UIKit
-import AudioToolbox
 
 enum ChatState: Equatable {
     case connecting
@@ -131,17 +130,13 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            // Deactivate session so system sound plays cleanly, then start mic in callback
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSoundWithCompletion(1111) { [weak self] in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    self.setupAudioSession()
-                    if self.isOnDeviceMode {
-                        self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                    } else {
-                        self.relayService.startMic()
-                    }
+            SoundPlayer.playStart { [weak self] in
+                guard let self = self else { return }
+                self.setupAudioSession()
+                if self.isOnDeviceMode {
+                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                } else {
+                    self.relayService.startMic()
                 }
             }
         } else {
@@ -161,10 +156,9 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
-        // Stop mic, deactivate session, play stop sound cleanly
+        // Stop mic then play stop sound
         if isOnDeviceMode { onDeviceSTTService.stop() } else { relayService.stopMic() }
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        AudioServicesPlaySystemSoundWithCompletion(1110) {}
+        SoundPlayer.playStop()
 
         // 5s fallback — if TTS never arrives, finalize anyway
         stopTimeoutTimer?.invalidate()
@@ -319,7 +313,7 @@ class ChatViewModel: ObservableObject {
                     print("[sound] playing 1114 — STT done (relay mic_stop)")
                     let s = AVAudioSession.sharedInstance()
                     try? s.setActive(false, options: .notifyOthersOnDeactivation)
-                    AudioServicesPlaySystemSound(1110)
+                    SoundPlayer.playStop()
                 }
             }
         }
@@ -438,7 +432,7 @@ class ChatViewModel: ObservableObject {
             print("[sound] playing 1114 — STT done (on-device final)")
             let s = AVAudioSession.sharedInstance()
             try? s.setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSound(1110)
+            SoundPlayer.playStop()
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
             }
