@@ -128,9 +128,6 @@ class ChatViewModel: ObservableObject {
         // Stop TTS if playing (barge-in)
         if isOnDeviceMode && onDeviceTTSService.isSpeaking {
             onDeviceTTSService.stop()
-        } else if !isOnDeviceMode {
-            // Stop relay TTS player so it doesn't compete with the start beep
-            relayService.stopTTSPlayback()
         }
 
         wakeWordService.stop()
@@ -141,19 +138,13 @@ class ChatViewModel: ObservableObject {
         if beep {
             SoundPlayer.playStart { [weak self] in
                 guard let self = self else { return }
-                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                    guard let self = self else { return }
-                    self.setupAudioSession()
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self else { return }
-                        if self.isOnDeviceMode {
-                            self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                        } else {
-                            self.relayService.startMic()
-                        }
-                        self.isOrbLocked = false
-                    }
+                self.setupAudioSession()
+                if self.isOnDeviceMode {
+                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                } else {
+                    self.relayService.startMic()
                 }
+                self.isOrbLocked = false
             }
         } else {
             setupAudioSession()
