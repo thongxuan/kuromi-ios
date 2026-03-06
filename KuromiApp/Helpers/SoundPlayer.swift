@@ -2,10 +2,16 @@ import AudioToolbox
 
 enum SoundPlayer {
     static func playStart(completion: (() -> Void)? = nil) {
-        AudioServicesPlaySystemSoundWithCompletion(1111) { completion?() }
+        AudioServicesPlaySystemSound(1111)
+        if let completion {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { completion() }
+        }
     }
 
     static func playStop(completion: (() -> Void)? = nil) {
-        AudioServicesPlaySystemSoundWithCompletion(1110) { completion?() }
+        AudioServicesPlaySystemSound(1110)
+        if let completion {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { completion() }
+        }
     }
 }
