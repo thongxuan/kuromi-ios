@@ -148,6 +148,7 @@ class AudioRelayService: NSObject, ObservableObject {
         guard isListening else { return }
         audioEngine.inputNode.removeTap(onBus: 0)
         audioEngine.stop()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         isListening = false
         print("[relay] mic stopped")
     }
