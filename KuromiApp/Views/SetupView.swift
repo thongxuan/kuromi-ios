@@ -275,15 +275,13 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
 
-                    if deviceSupports {
-                        VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
                                 Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
                                 Text("On-device voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
                             }
                             HStack(spacing: 12) {
-                                // Voice picker — only when toggle on
-                                if useOnDeviceVoice {
+                                if deviceSupports && useOnDeviceVoice {
                                     Menu {
                                         ForEach(availableVoices, id: \.identifier) { voice in
                                             Button(action: { onDeviceVoiceId = voice.identifier }) {
@@ -301,7 +299,7 @@ struct LanguageSheet: View {
                                     }
                                     .frame(maxWidth: .infinity)
                                 } else {
-                                    Text("Off")
+                                    Text(deviceSupports ? "Off" : "Requires iPhone 12+ (A14)")
                                         .foregroundColor(.appSecondaryLabel).font(.body)
                                         .padding(.horizontal, 16).frame(height: 52)
                                     Spacer()
@@ -309,6 +307,7 @@ struct LanguageSheet: View {
                                 Toggle("", isOn: $useOnDeviceVoice)
                                     .tint(.purple)
                                     .labelsHidden()
+                                    .disabled(!deviceSupports)
                                     .padding(.trailing, 16)
                             }
                             .background(
@@ -317,8 +316,20 @@ struct LanguageSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 12)
                                         .strokeBorder(Color.appBorder, lineWidth: 1))
                             )
+                            .opacity(deviceSupports ? 1.0 : 0.5)
+
+                            if !deviceSupports {
+                                Link(destination: URL(string: "https://github.com/thongxuan/kuromi-audio-relay")!) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "arrow.up.right.square").font(.caption2)
+                                        Text("How to setup relay server")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.purple)
+                                }
+                                .padding(.leading, 4)
+                            }
                         }
-                    }
 
                 }
 
