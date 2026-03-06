@@ -138,13 +138,19 @@ class ChatViewModel: ObservableObject {
         if beep {
             SoundPlayer.playStart { [weak self] in
                 guard let self = self else { return }
-                self.setupAudioSession()
-                if self.isOnDeviceMode {
-                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                } else {
-                    self.relayService.startMic()
+                // setupAudioSession (setActive) can block main thread — run on background
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self = self else { return }
+                    self.setupAudioSession()
+                    DispatchQueue.main.async {
+                        if self.isOnDeviceMode {
+                            self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                        } else {
+                            self.relayService.startMic()
+                        }
+                        self.isOrbLocked = false
+                    }
                 }
-                self.isOrbLocked = false
             }
         } else {
             setupAudioSession()
