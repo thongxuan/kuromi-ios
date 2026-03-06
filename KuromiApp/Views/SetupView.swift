@@ -95,7 +95,8 @@ struct SetupView: View {
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase,
                 useOnDeviceVoice: $viewModel.useOnDeviceVoice,
-                onDeviceVoiceId: $viewModel.onDeviceVoiceId
+                onDeviceVoiceId: $viewModel.onDeviceVoiceId,
+                deviceSupports: viewModel.deviceSupportsOnDeviceVoice
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -199,6 +200,7 @@ struct LanguageSheet: View {
     @Binding var stopPhrase: String
     @Binding var useOnDeviceVoice: Bool
     @Binding var onDeviceVoiceId: String
+    var deviceSupports: Bool = true
     @Environment(\.dismiss) var dismiss
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
@@ -273,7 +275,7 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
 
-                    Toggle(isOn: $useOnDeviceVoice) {
+                    if deviceSupports { Toggle(isOn: $useOnDeviceVoice) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("On-device voice")
                                 .font(.body).foregroundColor(.appLabel)
@@ -289,8 +291,9 @@ struct LanguageSheet: View {
                             .overlay(RoundedRectangle(cornerRadius: 12)
                                 .strokeBorder(Color.appBorder, lineWidth: 1))
                     )
+                    } // if deviceSupports
 
-                    if useOnDeviceVoice {
+                    if useOnDeviceVoice && deviceSupports {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
                                 Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)

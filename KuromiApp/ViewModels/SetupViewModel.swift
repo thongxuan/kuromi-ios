@@ -12,6 +12,7 @@ class SetupViewModel: ObservableObject {
     @Published var wakePhrase: String = "kuromi"
     @Published var stopPhrase: String = "dừng lại"
     @Published var useOnDeviceVoice: Bool = false
+    let deviceSupportsOnDeviceVoice: Bool = AppSettings.deviceSupportsOnDeviceVoice
     @Published var onDeviceVoiceId: String = ""
     @Published var useSpeaker: Bool = false
     @Published var errorMessage: String = ""
@@ -40,6 +41,9 @@ class SetupViewModel: ObservableObject {
             useOnDeviceVoice = s.useOnDeviceVoice
             onDeviceVoiceId = s.onDeviceVoiceId
             useSpeaker = s.useSpeaker
+        } else {
+            // First launch — default on-device voice based on device capability
+            useOnDeviceVoice = AppSettings.deviceSupportsOnDeviceVoice
         }
     }
 
