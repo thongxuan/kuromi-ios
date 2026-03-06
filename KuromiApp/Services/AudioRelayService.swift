@@ -68,16 +68,16 @@ class AudioRelayService: NSObject, ObservableObject {
         ttsBuffer = Data()
         audioPlayer?.stop(); audioPlayer = nil
 
+        isConnected = false
         urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: .main)
         ws = urlSession?.webSocketTask(with: wsURL)
         ws?.resume()
-        isConnected = true
         receive()
 
         var startMsg: [String: String] = ["type": textMode ? "start_text" : "start", "language": sttLanguage, "voice": ttsVoice]
         if !gatewayToken.isEmpty { startMsg["token"] = gatewayToken }
         sendJSON(startMsg)
-        print("[relay] connected → \(url)")
+        print("[relay] connecting → \(url)")
     }
 
     func disconnect() {
@@ -93,7 +93,8 @@ class AudioRelayService: NSObject, ObservableObject {
     }
 
     func appDidBecomeActive() {
-        guard !gatewayURL.isEmpty, !isConnected else { return }
+        guard !gatewayURL.isEmpty else { return }
+        // Always reconnect on foreground — WS may have died in background
         reconnectAttempts = 0
         reconnectTimer?.invalidate()
         doConnect()
