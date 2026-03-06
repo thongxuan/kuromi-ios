@@ -166,11 +166,13 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 guard let self = self else { return }
                 self.onDeviceSTTService.stop()
-                // No relay — finalize immediately
-                self.isStopping = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.resumeWakeWord()
-                }
+            }
+            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
+            stopTimeoutTimer?.invalidate()
+            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
+                self.pendingWakeWordResume = false
+                self.finalizeStop()
             }
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
@@ -414,6 +416,10 @@ class ChatViewModel: ObservableObject {
             let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
             if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                 print("[chat] stop phrase (on-device): '\(text)'")
+                // Only add to chat once (isFinal), avoid duplicates from partial+final
+                if isFinal && !text.isEmpty && !self.isStopping {
+                    self.messages.append(Message(role: .user, text: text))
+                }
                 self.onDeviceSTTService.stop()
                 self.currentTranscript = ""
                 self.inputLevel = 0.0
@@ -432,6 +438,7 @@ class ChatViewModel: ObservableObject {
 
         onDeviceSTTService.onFinalTranscript = { [weak self] (text: String) in
             guard let self = self, case .userSpeaking = self.chatState else { return }
+            guard !self.isStopping else { return }  // Don't send to gateway if stopping
             self.onDeviceSTTService.stop()
             self.chatState = .idle
             self.inputLevel = 0.0
