@@ -341,8 +341,9 @@ struct LanguageSheet: View {
 
                                 // Preview button
                                 Button(action: {
-                                    let preview = wakePhrase.isEmpty ? stopPhrase : wakePhrase
-                                    guard !preview.isEmpty else { return }
+                                    let parts = [wakePhrase, stopPhrase].filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                                    guard !parts.isEmpty else { return }
+                                    let preview = parts.joined(separator: ". ")
                                     let utterance = AVSpeechUtterance(string: preview)
                                     if let voice = AVSpeechSynthesisVoice(identifier: onDeviceVoiceId) {
                                         utterance.voice = voice
