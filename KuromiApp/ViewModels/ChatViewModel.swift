@@ -48,7 +48,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - Init
 
     init() {
-        settings = AppSettings.load()!
+        settings = AppSettings.load() ?? AppSettings.loadOrDefault()
         if isOnDeviceMode {
             setupGatewayDirect()
             setupOnDeviceTTS()
@@ -78,6 +78,7 @@ class ChatViewModel: ObservableObject {
         onDeviceSTTService.stop()
         onDeviceTTSService.stop()
         wakeWordService.stop()
+        if !isOnDeviceMode { relayService.disconnect() }
     }
 
     func reconnect() {
@@ -333,10 +334,12 @@ class ChatViewModel: ObservableObject {
         gatewayService.onDelta = { [weak self] delta in
             guard let self = self else { return }
             self.accumulatedResponse += delta
+            self.currentAIResponse = self.accumulatedResponse
         }
 
         gatewayService.onResponseComplete = { [weak self] in
             guard let self = self else { return }
+            self.currentAIResponse = ""
             let response = self.accumulatedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !response.isEmpty else {
                 self.chatState = .idle
