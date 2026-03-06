@@ -53,13 +53,23 @@ class AudioRelayService: NSObject, ObservableObject {
               let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
         switch routeChangeReason {
         case .newDeviceAvailable, .oldDeviceUnavailable:
-            // Audio route changed while TTS playing — pause and resume to avoid crash
-            guard isPlayingTTS, let player = audioPlayer else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if self.useSpeaker {
-                    try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                // If mic is active: HW format changed — must restart engine with new format
+                if self.isListening {
+                    self.stopMic()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.startMic()
+                    }
                 }
-                if !player.isPlaying { player.play() }
+                // If TTS playing: re-apply speaker routing
+                if self.isPlayingTTS {
+                    if self.useSpeaker {
+                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
+                    }
+                    if let player = self.audioPlayer, !player.isPlaying {
+                        player.play()
+                    }
+                }
             }
         default: break
         }
