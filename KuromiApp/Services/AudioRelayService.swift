@@ -238,7 +238,6 @@ class AudioRelayService: NSObject, ObservableObject {
             try session.setCategory(.playAndRecord, mode: .default,
                                     options: [.allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
-            try? session.overrideOutputAudioPort(.speaker)
             audioPlayer = try AVAudioPlayer(contentsOf: tmp)
             audioPlayer?.delegate = self
             audioPlayer?.volume = 1.0
