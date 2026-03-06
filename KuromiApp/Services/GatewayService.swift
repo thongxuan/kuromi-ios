@@ -129,8 +129,10 @@ class GatewayService: NSObject, ObservableObject {
                 guard let payload = json["payload"] as? [String: Any],
                       let stream = payload["stream"] as? String else { return }
 
-                // Only process events matching our active runId
+                // Only process events from our own session
                 let runId = payload["runId"] as? String
+                let evtSession = payload["sessionKey"] as? String
+                if let evtSession, !evtSession.contains(sessionKey) { return }
                 if let active = activeRunId, runId != active { return }
 
                 if stream == "assistant",
