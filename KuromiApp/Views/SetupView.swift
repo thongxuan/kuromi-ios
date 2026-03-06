@@ -244,7 +244,11 @@ struct LanguageSheet: View {
                                     sttLanguage = lang.code
                                     onDeviceVoiceId = availableVoices.first?.identifier ?? ""
                                 }) {
-                                    Label("\(lang.flag) \(lang.name)", systemImage: sttLanguage == lang.code ? "checkmark" : "")
+                                    if sttLanguage == lang.code {
+                                            Label("\(lang.flag) \(lang.name)", systemImage: "checkmark")
+                                        } else {
+                                            Text("\(lang.flag) \(lang.name)")
+                                        }
                                 }
                             }
                         } label: {
@@ -279,7 +283,11 @@ struct LanguageSheet: View {
                                     Menu {
                                         ForEach(availableVoices, id: \.identifier) { voice in
                                             Button(action: { onDeviceVoiceId = voice.identifier }) {
-                                                Label(voiceDisplayName(voice), systemImage: onDeviceVoiceId == voice.identifier ? "checkmark" : "")
+                                                if onDeviceVoiceId == voice.identifier {
+                                                        Label(voiceDisplayName(voice), systemImage: "checkmark")
+                                                    } else {
+                                                        Text(voiceDisplayName(voice))
+                                                    }
                                             }
                                         }
                                     } label: {
