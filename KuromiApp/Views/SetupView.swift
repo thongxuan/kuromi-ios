@@ -206,9 +206,10 @@ struct LanguageSheet: View {
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
         let langPrefix = String(sttLanguage.prefix(2))
+        // Only show compact voices — always installed; enhanced/premium need separate download
         return AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix(langPrefix) }
-            .sorted { ($0.quality.rawValue, $0.name) > ($1.quality.rawValue, $1.name) }
+            .filter { $0.language.hasPrefix(langPrefix) && $0.quality == .default }
+            .sorted { $0.name < $1.name }
     }
 
     private func voiceDisplayName(_ voice: AVSpeechSynthesisVoice) -> String {
