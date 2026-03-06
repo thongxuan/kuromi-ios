@@ -135,6 +135,10 @@ class ChatViewModel: ObservableObject {
         chatState = .idle
         inputLevel = 0.0
 
+        // Briefly switch audio session so system sound is audible
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.ambient, mode: .default)
+        try? session.setActive(true)
         AudioServicesPlaySystemSound(1114) // end_record.caf
 
         if isTextMode {
