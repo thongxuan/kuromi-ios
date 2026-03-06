@@ -93,8 +93,7 @@ struct SetupView: View {
                 sttLanguage: $viewModel.sttLanguage,
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase,
-                useOnDeviceSTT: $viewModel.useOnDeviceSTT,
-                useSpeaker: $viewModel.useSpeaker
+                useOnDeviceSTT: $viewModel.useOnDeviceSTT
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -197,7 +196,6 @@ struct LanguageSheet: View {
     @Binding var wakePhrase: String
     @Binding var stopPhrase: String
     @Binding var useOnDeviceSTT: Bool
-    @Binding var useSpeaker: Bool
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -262,22 +260,6 @@ struct LanguageSheet: View {
                                 .strokeBorder(Color.appBorder, lineWidth: 1))
                     )
 
-                    Toggle(isOn: $useSpeaker) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Use speaker")
-                                .font(.body).foregroundColor(.appLabel)
-                            Text("Play TTS through loudspeaker")
-                                .font(.caption2).foregroundColor(.appSecondaryLabel)
-                        }
-                    }
-                    .tint(.purple)
-                    .padding(.horizontal, 16).frame(height: 64)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.appFieldBackground)
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.appBorder, lineWidth: 1))
-                    )
                 }
 
                 }
