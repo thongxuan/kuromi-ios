@@ -235,11 +235,6 @@ class AudioRelayService: NSObject, ObservableObject {
             .appendingPathComponent("kuromi_tts_\(UUID().uuidString).wav")
         do {
             try ttsBuffer.write(to: tmp)
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default,
-                                    options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
-
             audioPlayer = try AVAudioPlayer(contentsOf: tmp)
             audioPlayer?.delegate = self
             audioPlayer?.volume = 1.0
