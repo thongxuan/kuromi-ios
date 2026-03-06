@@ -325,19 +325,13 @@ struct LanguageSheet: View {
                             HStack(spacing: 0) {
                                 Menu {
                                     ForEach(availableVoices, id: \.identifier) { voice in
-                                        Button(action: {
-                                            if voiceIsLocal(voice) { onDeviceVoiceId = voice.identifier }
-                                        }) {
+                                        Button(action: { onDeviceVoiceId = voice.identifier }) {
                                             if onDeviceVoiceId == voice.identifier {
                                                 Label(voiceDisplayName(voice), systemImage: "checkmark")
-                                            } else if voiceIsLocal(voice) {
-                                                Text(voiceDisplayName(voice))
                                             } else {
-                                                Label(voiceDisplayName(voice), systemImage: "icloud.and.arrow.down")
-                                                    .foregroundColor(.secondary)
+                                                Text(voiceDisplayName(voice))
                                             }
                                         }
-                                        .disabled(!voiceIsLocal(voice))
                                     }
                                 } label: {
                                     HStack {
@@ -476,6 +470,13 @@ final class VoicePreviewPlayer: ObservableObject {
     private let synthesizer = AVSpeechSynthesizer()
 
     func speak(_ utterance: AVSpeechUtterance) {
+        // Fallback to compact if selected voice not available
+        if let voice = utterance.voice, voice.quality != .default {
+            let langPrefix = String(voice.language.prefix(2))
+            let compact = AVSpeechSynthesisVoice.speechVoices()
+                .first { $0.language.hasPrefix(langPrefix) && $0.quality == .default }
+            if let compact { utterance.voice = compact }
+        }
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         try? session.setActive(true)

@@ -34,17 +34,7 @@ class OnDeviceTTSService: NSObject {
 
         let utterance = AVSpeechUtterance(string: cleaned)
 
-        // Try specific voice ID first, fall back to language default
-        if !voiceId.isEmpty, let voice = AVSpeechSynthesisVoice(identifier: voiceId) {
-            utterance.voice = voice
-        } else {
-            // Use language code to find best voice
-            let langCode = String(language.prefix(2))
-            let voices = AVSpeechSynthesisVoice.speechVoices()
-                .filter { $0.language.hasPrefix(langCode) }
-                .sorted { $0.quality.rawValue > $1.quality.rawValue }
-            utterance.voice = voices.first ?? AVSpeechSynthesisVoice(language: language)
-        }
+        utterance.voice = resolveVoice(voiceId: voiceId, language: language)
 
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         utterance.volume = 1.0
@@ -57,6 +47,27 @@ class OnDeviceTTSService: NSObject {
         onStart?()
         synthesizer.speak(utterance)
         print("[onDeviceTTS] speaking: \(cleaned.prefix(50))")
+    }
+
+    /// Resolve voice with fallback: preferred → compact same lang → any same lang → nil
+    private func resolveVoice(voiceId: String, language: String) -> AVSpeechSynthesisVoice? {
+        let langPrefix = String(language.prefix(2))
+        let allForLang = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix(langPrefix) }
+        let compacts = allForLang.filter { $0.quality == .default }
+
+        // Try preferred voice
+        if !voiceId.isEmpty, let preferred = AVSpeechSynthesisVoice(identifier: voiceId) {
+            // Verify it's usable: compact voices always work; enhanced/premium may not be downloaded
+            if preferred.quality == .default { return preferred }
+            // For enhanced/premium: attempt to use — if MobileAsset warns, iOS falls back anyway
+            // but we proactively fallback to best compact to avoid silence
+            let testOk = compacts.contains { $0.language == preferred.language }
+            if !testOk { return preferred } // no compact alternative, try anyway
+            // Use compact with same locale if available, else any compact
+            return compacts.first { $0.language == preferred.language } ?? compacts.first ?? preferred
+        }
+        // No voiceId — use best compact
+        return compacts.first ?? AVSpeechSynthesisVoice(language: language)
     }
 
     func stop() {
