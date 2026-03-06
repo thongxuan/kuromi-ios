@@ -111,7 +111,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - Core Chat Actions (shared by manual + wake/stop word)
 
     /// Begin a chat turn — called by: orb tap, wake word detection
-    private func startChat(beep: Bool = false) {
+    private func startChat(beep: Bool = true) {
         // Cancel any pending stop state
         stopTimeoutTimer?.invalidate()
         stopTimeoutTimer = nil
