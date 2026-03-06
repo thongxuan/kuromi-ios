@@ -201,7 +201,7 @@ struct LanguageSheet: View {
     @Binding var useOnDeviceVoice: Bool
     @Binding var onDeviceVoiceId: String
     var deviceSupports: Bool = true
-    @State private var previewSynthesizer = AVSpeechSynthesizer()
+    @StateObject private var voicePreview = VoicePreviewPlayer()
     @Environment(\.dismiss) var dismiss
 
     private var availableVoices: [AVSpeechSynthesisVoice] {
@@ -347,8 +347,7 @@ struct LanguageSheet: View {
                                     if let voice = AVSpeechSynthesisVoice(identifier: onDeviceVoiceId) {
                                         utterance.voice = voice
                                     }
-                                    previewSynthesizer.stopSpeaking(at: .immediate)
-                                    previewSynthesizer.speak(utterance)
+                                    voicePreview.speak(utterance)
                                 }) {
                                     Image(systemName: "play.circle")
                                         .font(.title3)
@@ -454,6 +453,20 @@ struct KuromiTextField: View {
                         .strokeBorder(borderColor, lineWidth: 1))
             )
         }
+    }
+}
+
+// MARK: - Voice Preview
+
+final class VoicePreviewPlayer: ObservableObject {
+    private let synthesizer = AVSpeechSynthesizer()
+
+    func speak(_ utterance: AVSpeechUtterance) {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
+        synthesizer.stopSpeaking(at: .immediate)
+        synthesizer.speak(utterance)
     }
 }
 
