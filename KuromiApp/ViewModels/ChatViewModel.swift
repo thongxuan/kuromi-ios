@@ -131,7 +131,7 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            AudioServicesPlaySystemSound(1113) // begin_record.caf
+            AudioServicesPlaySystemSound(1110) // begin_record.caf
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 guard let self = self else { return }
                 if self.isOnDeviceMode {
@@ -160,7 +160,7 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         // Play stop sound — use AudioServicesPlaySystemSound (no session switch needed)
-        AudioServicesPlaySystemSound(1114) // end_record.caf
+        AudioServicesPlaySystemSound(1111) // end_record.caf
 
         if isOnDeviceMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
@@ -332,7 +332,7 @@ class ChatViewModel: ObservableObject {
                     print("[sound] playing 1114 — STT done (relay mic_stop)")
                     let s = AVAudioSession.sharedInstance()
                     try? s.setActive(false, options: .notifyOthersOnDeactivation)
-                    AudioServicesPlaySystemSound(1114)
+                    AudioServicesPlaySystemSound(1111)
                 }
             }
         }
@@ -451,7 +451,7 @@ class ChatViewModel: ObservableObject {
             print("[sound] playing 1114 — STT done (on-device final)")
             let s = AVAudioSession.sharedInstance()
             try? s.setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSound(1114)
+            AudioServicesPlaySystemSound(1111)
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
             }
