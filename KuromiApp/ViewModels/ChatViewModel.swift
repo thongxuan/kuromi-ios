@@ -131,15 +131,17 @@ class ChatViewModel: ObservableObject {
         inputLevel = 0.0
 
         if beep {
-            AudioServicesPlaySystemSound(1111) // begin_record.caf
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                guard let self = self else { return }
-                if self.isOnDeviceMode {
+            // Deactivate session so system sound plays cleanly, then start mic in callback
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            AudioServicesPlaySystemSoundWithCompletion(1111) { [weak self] in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
                     self.setupAudioSession()
-                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                } else {
-                    self.setupAudioSession()
-                    self.relayService.startMic()
+                    if self.isOnDeviceMode {
+                        self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+                    } else {
+                        self.relayService.startMic()
+                    }
                 }
             }
         } else {
