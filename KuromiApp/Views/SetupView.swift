@@ -211,13 +211,7 @@ struct LanguageSheet: View {
     }
 
     private func voiceDisplayName(_ voice: AVSpeechSynthesisVoice) -> String {
-        var name = voice.name
-        switch voice.quality {
-        case .enhanced: name += " (Enhanced)"
-        case .premium: name += " (Premium)"
-        default: break
-        }
-        return name
+        return voice.name
     }
 
     private var selectedVoiceName: String {
@@ -318,7 +312,7 @@ struct LanguageSheet: View {
                             )
                             .opacity(deviceSupports ? 1.0 : 0.5)
 
-                            if !deviceSupports {
+                            if !useOnDeviceVoice {
                                 Link(destination: URL(string: "https://github.com/thongxuan/kuromi-audio-relay")!) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "arrow.up.right.square").font(.caption2)
