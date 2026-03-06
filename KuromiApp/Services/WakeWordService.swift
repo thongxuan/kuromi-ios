@@ -96,7 +96,6 @@ class WakeWordService: ObservableObject {
                 if fuzzyContains(text, phrase: self.wakePhrase, threshold: 0.7) {
                     print("[wake] ✅ wake phrase detected!")
                     DispatchQueue.main.async { self.onDetected?() }
-                    self.scheduleRestart(language: language, after: 2.0)
                     return
                 }
                 if result.isFinal {
