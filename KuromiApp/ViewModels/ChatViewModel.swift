@@ -329,7 +329,10 @@ class ChatViewModel: ObservableObject {
                 if self.isStopping {
                     self.finalizeStop(fromMicStop: true)
                 } else {
-                    AudioServicesPlaySystemSound(1114) // STT done, waiting for AI
+                    print("[sound] playing 1114 — STT done (relay mic_stop)")
+                    let s = AVAudioSession.sharedInstance()
+                    try? s.setActive(false, options: .notifyOthersOnDeactivation)
+                    AudioServicesPlaySystemSound(1114)
                 }
             }
         }
@@ -445,7 +448,10 @@ class ChatViewModel: ObservableObject {
             self.chatState = .idle
             self.inputLevel = 0.0
             self.currentTranscript = ""
-            AudioServicesPlaySystemSound(1114) // STT done, waiting for AI
+            print("[sound] playing 1114 — STT done (on-device final)")
+            let s = AVAudioSession.sharedInstance()
+            try? s.setActive(false, options: .notifyOthersOnDeactivation)
+            AudioServicesPlaySystemSound(1114)
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
             }
