@@ -13,16 +13,19 @@ class SoundPlayer: NSObject {
         play(named: "stop_beep", completion: completion)
     }
 
-    private static func play(named name: String, completion: (() -> Void)?) {
+    static func play(named name: String, completion: (() -> Void)? = nil) {
         guard let url = Bundle.main.url(forResource: name, withExtension: "wav") else {
             print("[sound] missing \(name).wav — falling back")
             completion?()
             return
         }
         do {
-            // .ambient: follows media volume, mixes with other audio, won't interrupt mic
-            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
+            let session = AVAudioSession.sharedInstance()
+            // Deactivate current session first (e.g. playAndRecord) so .ambient takes effect
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
+            try session.setCategory(.ambient, mode: .default)
+            try session.setActive(true)
+            print("[sound] session category=\(session.category.rawValue) volume=\(session.outputVolume)")
             player = try AVAudioPlayer(contentsOf: url)
             player?.volume = 1.0
             player?.prepareToPlay()
