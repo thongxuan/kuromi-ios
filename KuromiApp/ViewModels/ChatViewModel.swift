@@ -326,7 +326,11 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.chatState = .idle
                 self.inputLevel = 0.0
-                if self.isStopping { self.finalizeStop(fromMicStop: true) }
+                if self.isStopping {
+                    self.finalizeStop(fromMicStop: true)
+                } else {
+                    AudioServicesPlaySystemSound(1114) // STT done, waiting for AI
+                }
             }
         }
 
@@ -441,6 +445,7 @@ class ChatViewModel: ObservableObject {
             self.chatState = .idle
             self.inputLevel = 0.0
             self.currentTranscript = ""
+            AudioServicesPlaySystemSound(1114) // STT done, waiting for AI
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
             }
