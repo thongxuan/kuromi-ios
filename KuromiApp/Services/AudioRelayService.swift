@@ -39,6 +39,32 @@ class AudioRelayService: NSObject, ObservableObject {
     private let bargeInThreshold: Float = 0.2
     private var didBargeIn: Bool = false  // prevent repeated barge-in for same TTS
 
+    override init() {
+        super.init()
+        // Handle audio route changes (e.g. AirPods connected during TTS playback)
+        NotificationCenter.default.addObserver(self,
+            selector: #selector(handleRouteChange(_:)),
+            name: AVAudioSession.routeChangeNotification,
+            object: nil)
+    }
+
+    @objc private func handleRouteChange(_ notification: Notification) {
+        guard let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
+        switch routeChangeReason {
+        case .newDeviceAvailable, .oldDeviceUnavailable:
+            // Audio route changed while TTS playing — pause and resume to avoid crash
+            guard isPlayingTTS, let player = audioPlayer else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if self.useSpeaker {
+                    try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
+                }
+                if !player.isPlaying { player.play() }
+            }
+        default: break
+        }
+    }
+
     // MARK: - Connect / Disconnect
 
     func connect(gatewayURL: String, language: String, voice: String, token: String = "", textMode: Bool = false) {
