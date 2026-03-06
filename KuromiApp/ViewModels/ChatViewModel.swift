@@ -476,12 +476,29 @@ class ChatViewModel: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 if self.isOnDeviceMode {
-                    // Gateway will auto-reconnect if needed
                     if case .disconnected = self.gatewayService.state {
                         self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
                     }
                 } else {
                     self.relayService.appDidBecomeActive()
+                }
+            }
+            .store(in: &cancellables)
+
+        // When AirPods (or any headphones) connect, auto-disable loud speaker
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                      AVAudioSession.RouteChangeReason(rawValue: reason) == .newDeviceAvailable else { return }
+                // Check if new route has headphones/AirPods
+                let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+                let hasHeadphones = outputs.contains { $0.portType == .headphones || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothHFP }
+                if hasHeadphones && self.isLoudSpeaker {
+                    self.isLoudSpeaker = false
+                    UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
+                    try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
                 }
             }
             .store(in: &cancellables)
