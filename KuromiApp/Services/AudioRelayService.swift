@@ -191,6 +191,11 @@ class AudioRelayService: NSObject, ObservableObject {
         print("[relay] mic stopped")
     }
 
+    /// Tell relay to stop processing current turn (mic stays on)
+    func sendStopSignal() {
+        sendJSON(["type": "stop"])
+    }
+
     func sendTranscript(_ text: String) {
         sendJSON(["type": "transcript", "text": text])
     }
@@ -247,7 +252,7 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.isReceivingTTS = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.playTTSBuffer() }
             case "mic_stop":
-                self.stopMic()
+                // Mic stays always-on — don't stop AVAudioEngine, just notify UI
                 self.onMicStop?()
             case "tts_abort":
                 self.isReceivingTTS = false

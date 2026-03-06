@@ -176,10 +176,9 @@ class ChatViewModel: ObservableObject {
                 self.finalizeStop()
             }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                self?.relayService.stopMic()
-            }
-            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
+            // Relay mode: mic stays always-on, just notify relay to stop processing current turn
+            relayService.sendStopSignal()
+            // 5s fallback
             stopTimeoutTimer?.invalidate()
             stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
                 guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
@@ -314,7 +313,11 @@ class ChatViewModel: ObservableObject {
                 }
                 self.chatState = .idle
                 self.inputLevel = 0.0
-                if self.isToggleEnabled { self.startChat() }
+                // Mic is always-on — no need to restart, just update state
+                if self.isToggleEnabled {
+                    self.chatState = .userSpeaking
+                    SoundPlayer.playStart()
+                }
             }
         }
 
