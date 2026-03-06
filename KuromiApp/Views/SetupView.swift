@@ -248,7 +248,7 @@ struct LanguageSheet: View {
                             ForEach(SetupViewModel.languages, id: \.code) { lang in
                                 Button(action: {
                                     sttLanguage = lang.code
-                                    onDeviceVoiceId = ""  // Reset voice when language changes
+                                    onDeviceVoiceId = availableVoices.first?.identifier ?? ""
                                 }) {
                                     Label("\(lang.flag) \(lang.name)", systemImage: sttLanguage == lang.code ? "checkmark" : "")
                                 }
@@ -332,6 +332,11 @@ struct LanguageSheet: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.appLabel))
                 }
                 .padding(24)
+            }
+        }
+        .onAppear {
+            if onDeviceVoiceId.isEmpty {
+                onDeviceVoiceId = availableVoices.first?.identifier ?? ""
             }
         }
         .onTapGesture { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
