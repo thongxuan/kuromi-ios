@@ -304,7 +304,7 @@ struct LanguageSheet: View {
                         .opacity(deviceSupports ? 1.0 : 0.5)
 
                         if !useOnDeviceVoice {
-                            Link(destination: URL(string: "https://github.com/thongxuan/kuromi-audio-relay")!) {
+                            Link(destination: URL(string: "https://github.com/thongxuan/kuromi-relay")!) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.up.right.square").font(.caption2)
                                     Text("How to setup relay server").font(.caption2)
