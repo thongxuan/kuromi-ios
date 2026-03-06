@@ -41,6 +41,7 @@ class ChatViewModel: ObservableObject {
     private var connectTimer: Timer?
     private var stopTimeoutTimer: Timer?
     private var isStopping: Bool = false      // true between stopChat() and finalizeStop()
+    private var isOrbLocked: Bool = false     // debounce: prevent rapid tap during transition
     private var ignoreNextTTSEnd: Bool = false
     private var pendingWakeWordResume: Bool = false  // resume wake word after TTS end/timeout
 
@@ -91,10 +92,14 @@ class ChatViewModel: ObservableObject {
 
     /// Orb tap — toggle between start and stop
     func toggleSpeaking() {
+        guard !isOrbLocked else { return }
+        isOrbLocked = true
         switch chatState {
         case .idle, .aiSpeaking: startChat(beep: true)
         case .userSpeaking:      stopChat()
-        default: break
+        default:
+            isOrbLocked = false
+            return
         }
     }
 
@@ -138,9 +143,11 @@ class ChatViewModel: ObservableObject {
                 } else {
                     self.relayService.startMic()
                 }
+                self.isOrbLocked = false
             }
         } else {
             setupAudioSession()
+            isOrbLocked = false
             if isOnDeviceMode {
                 onDeviceSTTService.start(language: settings.sttLanguage)
             } else {
@@ -158,7 +165,7 @@ class ChatViewModel: ObservableObject {
 
         // Stop mic then play stop sound
         if isOnDeviceMode { onDeviceSTTService.stop() } else { relayService.stopMic() }
-        SoundPlayer.playStop()
+        SoundPlayer.playStop { [weak self] in self?.isOrbLocked = false }
 
         // 5s fallback — if TTS never arrives, finalize anyway
         stopTimeoutTimer?.invalidate()
