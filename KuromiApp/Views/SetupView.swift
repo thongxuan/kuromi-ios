@@ -273,44 +273,85 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
 
+                    // Toggle row
                     VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
-                                Text("On-device voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                        HStack(spacing: 6) {
+                            Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
+                            Text("On-device voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                        }
+                        Toggle(isOn: $useOnDeviceVoice) {
+                            Text(deviceSupports ? "On-device voice" : "Requires iPhone 12+ (A14)")
+                                .font(.body).foregroundColor(deviceSupports ? .appLabel : .appSecondaryLabel)
+                        }
+                        .tint(.purple)
+                        .disabled(!deviceSupports)
+                        .padding(.horizontal, 16).frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.appFieldBackground)
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(Color.appBorder, lineWidth: 1))
+                        )
+                        .opacity(deviceSupports ? 1.0 : 0.5)
+
+                        if !useOnDeviceVoice {
+                            Link(destination: URL(string: "https://github.com/thongxuan/kuromi-audio-relay")!) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.right.square").font(.caption2)
+                                    Text("How to setup relay server").font(.caption2)
+                                }
+                                .foregroundColor(.purple)
                             }
-                            HStack(spacing: 12) {
-                                if deviceSupports && useOnDeviceVoice {
-                                    Menu {
-                                        ForEach(availableVoices, id: \.identifier) { voice in
-                                            Button(action: { onDeviceVoiceId = voice.identifier }) {
-                                                if onDeviceVoiceId == voice.identifier {
-                                                        Label(voiceDisplayName(voice), systemImage: "checkmark")
-                                                    } else {
-                                                        Text(voiceDisplayName(voice))
-                                                    }
+                            .padding(.leading, 4)
+                        }
+                    }
+
+                    // Voice picker row (only when on-device enabled)
+                    if useOnDeviceVoice && deviceSupports {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "waveform").font(.caption).foregroundColor(.purple)
+                                Text("Voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                            }
+                            HStack(spacing: 0) {
+                                Menu {
+                                    ForEach(availableVoices, id: \.identifier) { voice in
+                                        Button(action: { onDeviceVoiceId = voice.identifier }) {
+                                            if onDeviceVoiceId == voice.identifier {
+                                                Label(voiceDisplayName(voice), systemImage: "checkmark")
+                                            } else {
+                                                Text(voiceDisplayName(voice))
                                             }
                                         }
-                                    } label: {
-                                        HStack {
-                                            Text(selectedVoiceName)
-                                                .foregroundColor(.appLabel).font(.body)
-                                            Spacer()
-                                            Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
-                                        }
-                                        .padding(.horizontal, 16).frame(height: 52)
                                     }
-                                    .frame(maxWidth: .infinity)
-                                } else {
-                                    Text(deviceSupports ? "Off" : "Requires iPhone 12+ (A14)")
-                                        .foregroundColor(.appSecondaryLabel).font(.body)
-                                        .padding(.horizontal, 16).frame(height: 52)
-                                    Spacer()
+                                } label: {
+                                    HStack {
+                                        Text(selectedVoiceName)
+                                            .foregroundColor(.appLabel).font(.body)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
+                                    }
+                                    .padding(.horizontal, 16).frame(height: 52)
                                 }
-                                Toggle("", isOn: $useOnDeviceVoice)
-                                    .tint(.purple)
-                                    .labelsHidden()
-                                    .disabled(!deviceSupports)
-                                    .padding(.trailing, 16)
+                                .frame(maxWidth: .infinity)
+
+                                Divider().frame(height: 28)
+
+                                // Preview button
+                                Button(action: {
+                                    let preview = wakePhrase.isEmpty ? stopPhrase : wakePhrase
+                                    guard !preview.isEmpty else { return }
+                                    let utterance = AVSpeechUtterance(string: preview)
+                                    if let voice = AVSpeechSynthesisVoice(identifier: onDeviceVoiceId) {
+                                        utterance.voice = voice
+                                    }
+                                    AVSpeechSynthesizer().speak(utterance)
+                                }) {
+                                    Image(systemName: "play.circle")
+                                        .font(.title3)
+                                        .foregroundColor(.purple)
+                                        .frame(width: 52, height: 52)
+                                }
                             }
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -318,20 +359,8 @@ struct LanguageSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 12)
                                         .strokeBorder(Color.appBorder, lineWidth: 1))
                             )
-                            .opacity(deviceSupports ? 1.0 : 0.5)
-
-                            if !useOnDeviceVoice {
-                                Link(destination: URL(string: "https://github.com/thongxuan/kuromi-audio-relay")!) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "arrow.up.right.square").font(.caption2)
-                                        Text("How to setup relay server")
-                                            .font(.caption2)
-                                    }
-                                    .foregroundColor(.purple)
-                                }
-                                .padding(.leading, 4)
-                            }
                         }
+                    }
 
                 }
 
