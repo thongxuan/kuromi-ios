@@ -30,11 +30,14 @@ class ChatViewModel: ObservableObject {
     // MARK: - Private
 
     private var relayService = AudioRelayService()
+    private var gatewayService = GatewayService()
     private var wakeWordService = WakeWordService()
     private var onDeviceSTTService = OnDeviceSTTService()
+    private var onDeviceTTSService = OnDeviceTTSService()
     private var settings: AppSettings
-    private var isTextMode: Bool { settings.useOnDeviceSTT }
+    private var isOnDeviceMode: Bool { settings.useOnDeviceVoice }
     var wakePhrase: String { settings.wakePhrase }
+    private var accumulatedResponse: String = ""
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
     private var stopTimeoutTimer: Timer?
@@ -46,7 +49,14 @@ class ChatViewModel: ObservableObject {
 
     init() {
         settings = AppSettings.load()!
-        setupRelay()
+        if isOnDeviceMode {
+            setupGatewayDirect()
+            setupOnDeviceTTS()
+            setupOnDeviceSTT()
+        } else {
+            setupRelay()
+        }
+        setupWakeWord()
         observeForeground()
     }
 
@@ -66,13 +76,18 @@ class ChatViewModel: ObservableObject {
     func onDisappear() {
         stopChat()
         onDeviceSTTService.stop()
+        onDeviceTTSService.stop()
         wakeWordService.stop()
     }
 
     func reconnect() {
         showReconnectButton = false
         reconnectAttemptCount += 1
-        relayService.reconnect()
+        if isOnDeviceMode {
+            gatewayService.connect(to: settings.gatewayURL, token: settings.gatewayToken)
+        } else {
+            relayService.reconnect()
+        }
     }
 
     /// Orb tap — toggle between start and stop
@@ -103,6 +118,12 @@ class ChatViewModel: ObservableObject {
         isStopping = false
         ignoreNextTTSEnd = false
         pendingWakeWordResume = false
+        accumulatedResponse = ""
+
+        // Stop TTS if playing (barge-in)
+        if isOnDeviceMode && onDeviceTTSService.isSpeaking {
+            onDeviceTTSService.stop()
+        }
 
         wakeWordService.stop()
         chatState = .userSpeaking
@@ -113,7 +134,8 @@ class ChatViewModel: ObservableObject {
             AudioServicesPlaySystemSound(1113) // begin_record.caf
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
                 guard let self = self else { return }
-                if self.isTextMode {
+                if self.isOnDeviceMode {
+                    self.setupAudioSession()
                     self.onDeviceSTTService.start(language: self.settings.sttLanguage)
                 } else {
                     self.setupAudioSession()
@@ -121,10 +143,10 @@ class ChatViewModel: ObservableObject {
                 }
             }
         } else {
-            if isTextMode {
+            setupAudioSession()
+            if isOnDeviceMode {
                 onDeviceSTTService.start(language: settings.sttLanguage)
             } else {
-                setupAudioSession()
                 relayService.startMic()
             }
         }
@@ -140,11 +162,11 @@ class ChatViewModel: ObservableObject {
         // Play stop sound — use AudioServicesPlaySystemSound (no session switch needed)
         AudioServicesPlaySystemSound(1114) // end_record.caf
 
-        if isTextMode {
+        if isOnDeviceMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 guard let self = self else { return }
                 self.onDeviceSTTService.stop()
-                // No relay mic/mic_stop — finalize immediately
+                // No relay — finalize immediately
                 self.isStopping = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     self?.resumeWakeWord()
@@ -307,11 +329,72 @@ class ChatViewModel: ObservableObject {
         }
 
         relayService.useSpeaker = settings.useSpeaker
-        relayService.useOnDeviceTTS = settings.useOnDeviceTTS
-        relayService.onDeviceTTSLanguage = settings.onDeviceTTSLanguage
-        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, textMode: settings.useOnDeviceSTT)
-        if isTextMode { setupOnDeviceSTT() }
-        setupWakeWord()
+        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, textMode: false)
+    }
+
+    // MARK: - Gateway Direct (On-Device Mode)
+
+    private func setupGatewayDirect() {
+        gatewayService.onDelta = { [weak self] delta in
+            guard let self = self else { return }
+            self.accumulatedResponse += delta
+        }
+
+        gatewayService.onResponseComplete = { [weak self] in
+            guard let self = self else { return }
+            let response = self.accumulatedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !response.isEmpty else {
+                self.chatState = .idle
+                self.resumeWakeWord()
+                return
+            }
+
+            self.messages.append(Message(role: .assistant, text: response))
+            self.chatState = .aiSpeaking
+            self.onDeviceTTSService.speak(
+                text: response,
+                voiceId: self.settings.onDeviceVoiceId,
+                language: self.settings.sttLanguage
+            )
+        }
+
+        // Connect to gateway
+        gatewayService.connect(to: settings.gatewayURL, token: settings.gatewayToken)
+
+        // Observe gateway state
+        gatewayService.$state
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                guard let self = self else { return }
+                switch state {
+                case .connected:
+                    self.chatState = .idle
+                    self.isToggleEnabled = true
+                    self.showReconnectButton = false
+                    self.reconnectAttemptCount = 0
+                case .connecting:
+                    self.chatState = .connecting
+                case .disconnected, .error:
+                    self.chatState = .connecting
+                    self.isToggleEnabled = false
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func setupOnDeviceTTS() {
+        onDeviceTTSService.onStart = { [weak self] in
+            self?.chatState = .aiSpeaking
+        }
+
+        onDeviceTTSService.onFinish = { [weak self] in
+            guard let self = self else { return }
+            self.chatState = .idle
+            self.accumulatedResponse = ""
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.resumeWakeWord()
+            }
+        }
     }
 
     // MARK: - On-Device STT
@@ -348,8 +431,9 @@ class ChatViewModel: ObservableObject {
             if !text.isEmpty {
                 self.messages.append(Message(role: .user, text: text))
             }
-            self.relayService.sendTranscript(text)
-            // Relay will respond with mic_stop + TTS via existing handlers
+            // Send to gateway directly in on-device mode
+            self.accumulatedResponse = ""
+            self.gatewayService.sendMessage(text)
         }
     }
 
@@ -365,7 +449,17 @@ class ChatViewModel: ObservableObject {
     private func observeForeground() {
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.relayService.appDidBecomeActive() }
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                if self.isOnDeviceMode {
+                    // Gateway will auto-reconnect if needed
+                    if case .disconnected = self.gatewayService.state {
+                        self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
+                    }
+                } else {
+                    self.relayService.appDidBecomeActive()
+                }
+            }
             .store(in: &cancellables)
     }
 }

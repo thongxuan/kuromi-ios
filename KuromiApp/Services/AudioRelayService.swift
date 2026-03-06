@@ -25,13 +25,6 @@ class AudioRelayService: NSObject, ObservableObject {
     private var gatewayToken = ""
     private var textMode = false
 
-    // On-device TTS (Apple Neural)
-    var useOnDeviceTTS: Bool = false
-    var onDeviceTTSLanguage: String = "vi-VN"
-    var onDeviceTTSRate: Float = 0.5
-    private let speechSynthesizer = AVSpeechSynthesizer()
-    private var pendingAppleTTSText: String = ""
-
     private var ws: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var audioEngine = AVAudioEngine()
@@ -47,23 +40,6 @@ class AudioRelayService: NSObject, ObservableObject {
     private var didBargeIn: Bool = false  // prevent repeated barge-in for same TTS
 
     // MARK: - Connect / Disconnect
-
-    private func playWithAppleTTS(_ text: String) {
-        guard !text.isEmpty else {
-            onTTSEnd?()
-            return
-        }
-        speechSynthesizer.stopSpeaking(at: .immediate)
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: onDeviceTTSLanguage)
-        utterance.rate = onDeviceTTSRate
-        utterance.volume = 1.0
-        speechSynthesizer.delegate = self
-        isPlayingTTS = true
-        onTTSStart?()
-        speechSynthesizer.speak(utterance)
-        print("[appleTTS] speaking: \(text.prefix(50))")
-    }
 
     func connect(gatewayURL: String, language: String, voice: String, token: String = "", textMode: Bool = false) {
         self.gatewayURL = gatewayURL
@@ -224,47 +200,24 @@ class AudioRelayService: NSObject, ObservableObject {
             case "ai_text":
                 let text = json["text"] as? String ?? ""
                 self.onAIText?(text)
-                if self.useOnDeviceTTS {
-                    self.pendingAppleTTSText = text
-                }
             case "tts_start":
-                if self.useOnDeviceTTS {
-                    // On-device mode: ignore relay TTS, will play when ai_text received
-                    self.didBargeIn = false
-                    if !self.pendingAppleTTSText.isEmpty {
-                        let t = self.pendingAppleTTSText
-                        self.pendingAppleTTSText = ""
-                        self.playWithAppleTTS(t)
-                    }
-                } else {
-                    self.ttsBuffer = Data()
-                    self.isReceivingTTS = true
-                    self.isPlayingTTS = true
-                    self.didBargeIn = false
-                    self.onTTSStart?()
-                }
+                self.ttsBuffer = Data()
+                self.isReceivingTTS = true
+                self.isPlayingTTS = true
+                self.didBargeIn = false
+                self.onTTSStart?()
             case "tts_end":
-                if self.useOnDeviceTTS {
-                    // Relay TTS ended — ignore, Apple TTS handles its own end
-                    self.isReceivingTTS = false
-                } else {
-                    self.isReceivingTTS = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.playTTSBuffer() }
-                }
+                self.isReceivingTTS = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.playTTSBuffer() }
             case "mic_stop":
                 self.stopMic()
                 self.onMicStop?()
             case "tts_abort":
                 self.isReceivingTTS = false
                 self.isPlayingTTS = false
-                if self.useOnDeviceTTS {
-                    self.speechSynthesizer.stopSpeaking(at: .immediate)
-                    self.pendingAppleTTSText = ""
-                } else {
-                    self.audioPlayer?.stop()
-                    self.audioPlayer = nil
-                    self.ttsBuffer = Data()
-                }
+                self.audioPlayer?.stop()
+                self.audioPlayer = nil
+                self.ttsBuffer = Data()
                 self.onTTSEnd?()
             default: break
             }
@@ -273,8 +226,6 @@ class AudioRelayService: NSObject, ObservableObject {
 
     private func handleBinary(_ data: Data) {
         DispatchQueue.main.async {
-            // On-device TTS mode: skip relay WAV binary
-            if self.useOnDeviceTTS { return }
             if self.isReceivingTTS { self.ttsBuffer.append(data) }
         }
     }
@@ -342,24 +293,6 @@ extension AudioRelayService: AVAudioPlayerDelegate {
         DispatchQueue.main.async {
             self.isPlayingTTS = false
             self.onTTSEnd?()
-        }
-    }
-}
-
-extension AudioRelayService: AVSpeechSynthesizerDelegate {
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isPlayingTTS = false
-            self.onTTSEnd?()
-            print("[appleTTS] finished")
-        }
-    }
-
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isPlayingTTS = false
-            self.onTTSEnd?()
-            print("[appleTTS] cancelled")
         }
     }
 }

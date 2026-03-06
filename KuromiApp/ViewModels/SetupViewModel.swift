@@ -11,10 +11,9 @@ class SetupViewModel: ObservableObject {
     @Published var sttLanguage: String = "vi"
     @Published var wakePhrase: String = "kuromi"
     @Published var stopPhrase: String = "dừng lại"
-    @Published var useOnDeviceSTT: Bool = false
+    @Published var useOnDeviceVoice: Bool = false
+    @Published var onDeviceVoiceId: String = ""
     @Published var useSpeaker: Bool = false
-    @Published var useOnDeviceTTS: Bool = false
-    @Published var onDeviceTTSLanguage: String = "vi-VN"
     @Published var errorMessage: String = ""
 
     var isEditMode: Bool = false
@@ -38,10 +37,9 @@ class SetupViewModel: ObservableObject {
             sttLanguage = s.sttLanguage
             wakePhrase = s.wakePhrase
             stopPhrase = s.stopPhrase
-            useOnDeviceSTT = s.useOnDeviceSTT
+            useOnDeviceVoice = s.useOnDeviceVoice
+            onDeviceVoiceId = s.onDeviceVoiceId
             useSpeaker = s.useSpeaker
-            useOnDeviceTTS = s.useOnDeviceTTS
-            onDeviceTTSLanguage = s.onDeviceTTSLanguage
         }
     }
 
@@ -59,10 +57,9 @@ class SetupViewModel: ObservableObject {
             wakePhrase: wakePhrase.trimmingCharacters(in: .whitespaces).lowercased(),
             stopPhrase: stopPhrase.trimmingCharacters(in: .whitespaces).lowercased()
         )
-        s.useOnDeviceSTT = useOnDeviceSTT
+        s.useOnDeviceVoice = useOnDeviceVoice
+        s.onDeviceVoiceId = onDeviceVoiceId
         s.useSpeaker = useSpeaker
-        s.useOnDeviceTTS = useOnDeviceTTS
-        s.onDeviceTTSLanguage = onDeviceTTSLanguage
         s.save()
         return s
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct SetupView: View {
     @EnvironmentObject var appState: AppState
@@ -93,9 +94,8 @@ struct SetupView: View {
                 sttLanguage: $viewModel.sttLanguage,
                 wakePhrase: $viewModel.wakePhrase,
                 stopPhrase: $viewModel.stopPhrase,
-                useOnDeviceSTT: $viewModel.useOnDeviceSTT,
-                useOnDeviceTTS: $viewModel.useOnDeviceTTS,
-                onDeviceTTSLanguage: $viewModel.onDeviceTTSLanguage
+                useOnDeviceVoice: $viewModel.useOnDeviceVoice,
+                onDeviceVoiceId: $viewModel.onDeviceVoiceId
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -197,22 +197,33 @@ struct LanguageSheet: View {
     @Binding var sttLanguage: String
     @Binding var wakePhrase: String
     @Binding var stopPhrase: String
-    @Binding var useOnDeviceSTT: Bool
-    @Binding var useOnDeviceTTS: Bool
-    @Binding var onDeviceTTSLanguage: String
+    @Binding var useOnDeviceVoice: Bool
+    @Binding var onDeviceVoiceId: String
     @Environment(\.dismiss) var dismiss
 
-    private let ttsLanguages: [(code: String, name: String, flag: String)] = [
-        ("vi-VN", "Tiếng Việt", "🇻🇳"),
-        ("en-US", "English (US)", "🇺🇸"),
-        ("en-GB", "English (UK)", "🇬🇧"),
-        ("ja-JP", "日本語", "🇯🇵"),
-        ("zh-CN", "中文 (简体)", "🇨🇳"),
-        ("ko-KR", "한국어", "🇰🇷"),
-        ("fr-FR", "Français", "🇫🇷"),
-        ("de-DE", "Deutsch", "🇩🇪"),
-        ("es-ES", "Español", "🇪🇸"),
-    ]
+    private var availableVoices: [AVSpeechSynthesisVoice] {
+        let langPrefix = String(sttLanguage.prefix(2))
+        return AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language.hasPrefix(langPrefix) }
+            .sorted { ($0.quality.rawValue, $0.name) > ($1.quality.rawValue, $1.name) }
+    }
+
+    private func voiceDisplayName(_ voice: AVSpeechSynthesisVoice) -> String {
+        var name = voice.name
+        switch voice.quality {
+        case .enhanced: name += " (Enhanced)"
+        case .premium: name += " (Premium)"
+        default: break
+        }
+        return name
+    }
+
+    private var selectedVoiceName: String {
+        if let voice = AVSpeechSynthesisVoice(identifier: onDeviceVoiceId) {
+            return voiceDisplayName(voice)
+        }
+        return availableVoices.first.map { voiceDisplayName($0) } ?? "Default"
+    }
 
     var body: some View {
         ZStack {
@@ -233,7 +244,10 @@ struct LanguageSheet: View {
                         }
                         Menu {
                             ForEach(SetupViewModel.languages, id: \.code) { lang in
-                                Button(action: { sttLanguage = lang.code }) {
+                                Button(action: {
+                                    sttLanguage = lang.code
+                                    onDeviceVoiceId = ""  // Reset voice when language changes
+                                }) {
                                     Label("\(lang.flag) \(lang.name)", systemImage: sttLanguage == lang.code ? "checkmark" : "")
                                 }
                             }
@@ -259,11 +273,11 @@ struct LanguageSheet: View {
                     KuromiTextField(title: "Wake phrase", placeholder: "e.g. mi ơi", text: $wakePhrase, icon: "waveform")
                     KuromiTextField(title: "Stop phrase", placeholder: "e.g. thôi nhé", text: $stopPhrase, icon: "stop.circle")
 
-                    Toggle(isOn: $useOnDeviceSTT) {
+                    Toggle(isOn: $useOnDeviceVoice) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("On-device STT")
+                            Text("On-device voice")
                                 .font(.body).foregroundColor(.appLabel)
-                            Text("iPhone 12+ only (A14 chip or later)")
+                            Text("STT + TTS on-device, direct gateway")
                                 .font(.caption2).foregroundColor(.appSecondaryLabel)
                         }
                     }
@@ -276,39 +290,21 @@ struct LanguageSheet: View {
                                 .strokeBorder(Color.appBorder, lineWidth: 1))
                     )
 
-                    Toggle(isOn: $useOnDeviceTTS) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("On-device TTS (Apple Neural)")
-                                .font(.body).foregroundColor(.appLabel)
-                            Text("No internet needed — uses Apple voice")
-                                .font(.caption2).foregroundColor(.appSecondaryLabel)
-                        }
-                    }
-                    .tint(.purple)
-                    .padding(.horizontal, 16).frame(height: 64)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.appFieldBackground)
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.appBorder, lineWidth: 1))
-                    )
-
-                    if useOnDeviceTTS {
+                    if useOnDeviceVoice {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
                                 Image(systemName: "speaker.wave.2").font(.caption).foregroundColor(.purple)
-                                Text("TTS Language").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
+                                Text("Voice").font(.caption).fontWeight(.medium).foregroundColor(.appSecondaryLabel)
                             }
                             Menu {
-                                ForEach(ttsLanguages, id: \.code) { lang in
-                                    Button(action: { onDeviceTTSLanguage = lang.code }) {
-                                        Label("\(lang.flag) \(lang.name)", systemImage: onDeviceTTSLanguage == lang.code ? "checkmark" : "")
+                                ForEach(availableVoices, id: \.identifier) { voice in
+                                    Button(action: { onDeviceVoiceId = voice.identifier }) {
+                                        Label(voiceDisplayName(voice), systemImage: onDeviceVoiceId == voice.identifier ? "checkmark" : "")
                                     }
                                 }
                             } label: {
                                 HStack {
-                                    let current = ttsLanguages.first { $0.code == onDeviceTTSLanguage }
-                                    Text("\(current?.flag ?? "🔊") \(current?.name ?? onDeviceTTSLanguage)")
+                                    Text(selectedVoiceName)
                                         .foregroundColor(.appLabel).font(.body)
                                     Spacer()
                                     Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.appSecondaryLabel)
