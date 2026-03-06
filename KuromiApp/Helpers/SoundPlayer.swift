@@ -5,9 +5,11 @@ enum SoundPlayer {
     static func playStart(completion: (() -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSound(1111)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                completion?()
+            DispatchQueue.main.async {
+                AudioServicesPlaySystemSound(1111)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    completion?()
+                }
             }
         }
     }
@@ -15,9 +17,11 @@ enum SoundPlayer {
     static func playStop(completion: (() -> Void)? = nil) {
         DispatchQueue.global(qos: .userInitiated).async {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSound(1110)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                completion?()
+            DispatchQueue.main.async {
+                AudioServicesPlaySystemSound(1110)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    completion?()
+                }
             }
         }
     }
