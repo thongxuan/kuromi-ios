@@ -5,8 +5,8 @@ struct AppSettings: Codable {
     var gatewayURL: String
     var gatewayToken: String
     var sttLanguage: String = "vi"
-    var wakePhrase: String = "kuromi"
-    var stopPhrase: String = "dừng lại"
+    var wakePhrase: String = ""
+    var stopPhrase: String = ""
     var useOnDeviceVoice: Bool = false
     var onDeviceVoiceId: String = ""
     var useSpeaker: Bool = false
