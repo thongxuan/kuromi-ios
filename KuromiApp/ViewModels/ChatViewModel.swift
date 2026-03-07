@@ -608,16 +608,12 @@ class ChatViewModel: ObservableObject {
                 AudioSessionManager.shared.setupForChat(loudSpeaker: self.isLoudSpeaker)
                 self.audioEngine.restartEngine()
 
-                // Then reconnect socket (slight delay to let engine stabilize)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                // Force reconnect after engine stabilizes — iOS kills WS when backgrounded
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if self.isOnDeviceMode {
-                        if case .disconnected = self.gatewayService.state {
-                            self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
-                        }
+                        self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
                     } else {
-                        if !self.relayService.isConnected {
-                            self.relayService.appDidBecomeActive()
-                        }
+                        self.relayService.appDidBecomeActive()
                     }
                 }
             }
