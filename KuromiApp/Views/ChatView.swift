@@ -252,13 +252,13 @@ struct OrbView: View {
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
-            // Icon
+            // Icon — fixed center, no scale animation
             if !orbIcon.isEmpty {
                 Image(systemName: orbIcon)
-                    .font(.system(size: 30, weight: .light))
+                    .font(.system(size: 28, weight: .light))
                     .foregroundColor(.appLabel.opacity(0.7))
-                    .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
-                    .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
+                    .frame(width: orbBase, height: orbBase)  // match orb size to guarantee center
+                    .animation(nil, value: orbIcon)  // no animation on icon change
             }
         }
         .frame(width: containerSize, height: containerSize)
