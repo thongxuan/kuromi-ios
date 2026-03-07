@@ -16,6 +16,7 @@ class ChatViewModel: ObservableObject {
     @Published var isLoudSpeaker: Bool = UserDefaults.standard.object(forKey: "kuromi_loud_speaker") == nil
         ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
     @Published var isSessionActive: Bool = false
+    @Published var ttsLevel: Float = 0.0
 
     /// Expose chatState from AudioEngine.
     var chatState: ChatState {
@@ -26,6 +27,7 @@ class ChatViewModel: ObservableObject {
     var inputLevel: Float {
         AudioEngine.shared.inputLevel
     }
+
 
     // MARK: - Services
 
@@ -311,6 +313,10 @@ class ChatViewModel: ObservableObject {
     // MARK: - Relay Callbacks
 
     private func setupRelay() {
+        relayService.$ttsLevel
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$ttsLevel)
+
         relayService.onReady = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }

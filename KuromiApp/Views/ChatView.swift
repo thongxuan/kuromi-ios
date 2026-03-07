@@ -165,7 +165,7 @@ struct ChatView: View {
 
     private var orbButton: some View {
         Button(action: { viewModel.toggleSpeaking() }) {
-            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel, isSessionActive: viewModel.isSessionActive)
+            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel, isSessionActive: viewModel.isSessionActive, ttsLevel: viewModel.ttsLevel)
         }
         .disabled(!viewModel.isToggleEnabled)
         .opacity(viewModel.isToggleEnabled ? 1.0 : 0.5)
@@ -179,6 +179,7 @@ struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
     let isSessionActive: Bool
+    var ttsLevel: Float = 0.0
 
     private let containerSize: CGFloat = 240
     private let orbBase: CGFloat = 132
@@ -223,7 +224,7 @@ struct OrbView: View {
 
             // Rotating arc + pulse — AI (thinking/speaking)
             if visual == .ai {
-                PulsingRingView(baseSize: orbBase)
+                PulsingRingView(baseSize: orbBase, ttsLevel: ttsLevel)
                 Circle()
                     .trim(from: 0, to: 0.25)
                     .stroke(orbColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -277,19 +278,22 @@ struct OrbView: View {
 
 struct PulsingRingView: View {
     let baseSize: CGFloat
-    @State private var scale: CGFloat = 1.0
-    @State private var opacity: Double = 0.4
+    var ttsLevel: Float = 0.0
+
+    private var scale: CGFloat {
+        // map ttsLevel 0..1 → scale 1.0..1.35
+        1.0 + CGFloat(ttsLevel) * 0.35
+    }
+    private var opacity: Double {
+        // louder = more visible
+        0.15 + Double(ttsLevel) * 0.65
+    }
 
     var body: some View {
         Circle()
             .strokeBorder(Color.orange.opacity(opacity), lineWidth: 2)
             .frame(width: baseSize * scale, height: baseSize * scale)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                    scale = 1.3
-                    opacity = 0.1
-                }
-            }
+            .animation(.spring(response: 0.12, dampingFraction: 0.6), value: ttsLevel)
     }
 }
 
