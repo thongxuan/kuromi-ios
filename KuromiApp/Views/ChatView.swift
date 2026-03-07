@@ -151,12 +151,7 @@ struct ChatView: View {
             default: return .gray
             }
         }()
-        let visible: Bool = {
-            switch viewModel.chatState {
-            case .listening, .aiThinking, .aiSpeaking: return false
-            default: return true
-            }
-        }()
+        let visible: Bool = !viewModel.isSessionActive && viewModel.chatState != .listening
         Text(label)
             .font(.footnote)
             .foregroundColor(color)
