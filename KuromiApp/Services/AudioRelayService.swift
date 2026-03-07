@@ -131,6 +131,8 @@ class AudioRelayService: NSObject, ObservableObject {
     }
 
     /// Tell relay to stop processing current turn.
+    func sendBargeIn() { sendJSON(["type": "barge_in"]) }
+
     func sendStopSignal() {
         sendJSON(["type": "stop"])
     }
