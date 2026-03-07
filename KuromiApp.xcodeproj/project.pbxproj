@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AE000001 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE100001 /* AudioEngine.swift */; };
+		AS000001 /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS100001 /* AudioSessionManager.swift */; };
 		SP000002 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP000001 /* SoundPlayer.swift */; };
 		AA000001 /* KuromiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* KuromiApp.swift */; };
 		AA000002 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */; };
@@ -25,6 +27,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AE100001 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		AS100001 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
 		SP000001 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
 		AA100001 /* KuromiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuromiApp.swift; sourceTree = "<group>"; };
 		AA100002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -99,6 +103,8 @@
 		AA400004 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				AE100001 /* AudioEngine.swift */,
+				AS100001 /* AudioSessionManager.swift */,
 				AA100011 /* GatewayService.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */,
 				WW100001 /* WakeWordService.swift */,
@@ -202,6 +208,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE000001 /* AudioEngine.swift in Sources */,
+				AS000001 /* AudioSessionManager.swift in Sources */,
 				AA000001 /* KuromiApp.swift in Sources */,
 				AA000002 /* AppSettings.swift in Sources */,
 				AA000003 /* Message.swift in Sources */,
