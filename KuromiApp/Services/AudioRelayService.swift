@@ -58,7 +58,8 @@ class AudioRelayService: NSObject, ObservableObject {
         isReconnecting = true
         ws?.cancel()
         ws = nil
-        isReconnecting = false
+        // Keep isReconnecting = true until new socket is set up
+        defer { isReconnecting = false }
 
         // Reset state on reconnect
         isPlayingTTS = false
