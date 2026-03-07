@@ -9,8 +9,8 @@ class SetupViewModel: ObservableObject {
     @Published var gatewayURL: String = ""
     @Published var gatewayToken: String = ""
     @Published var sttLanguage: String = "vi"
-    @Published var wakePhrase: String = "kuromi"
-    @Published var stopPhrase: String = "dừng lại"
+    @Published var wakePhrase: String = ""
+    @Published var stopPhrase: String = ""
     @Published var useOnDeviceVoice: Bool = false
     let deviceSupportsOnDeviceVoice: Bool = AppSettings.deviceSupportsOnDeviceVoice
     @Published var onDeviceVoiceId: String = ""

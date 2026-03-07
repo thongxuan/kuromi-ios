@@ -7,9 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AE000001 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE100001 /* AudioEngine.swift */; };
-		AS000001 /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS100001 /* AudioSessionManager.swift */; };
-		SP000002 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP000001 /* SoundPlayer.swift */; };
+		2D227C182F5C12E100F078BE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D227C172F5C12E100F078BE /* Assets.xcassets */; };
 		AA000001 /* KuromiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* KuromiApp.swift */; };
 		AA000002 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* AppSettings.swift */; };
 		AA000003 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* Message.swift */; };
@@ -18,18 +16,20 @@
 		AA000008 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100008 /* SetupView.swift */; };
 		AA000010 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* ChatView.swift */; };
 		AA000011 /* GatewayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* GatewayService.swift */; };
-		B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */; };
-		WW000001 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW100001 /* WakeWordService.swift */; };
 		AC000001 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC100001 /* AppColors.swift */; };
+		AE000001 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE100001 /* AudioEngine.swift */; };
+		AS000001 /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS100001 /* AudioSessionManager.swift */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* AudioRelayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */; };
+		FM000001 /* FuzzyMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = FM100001 /* FuzzyMatch.swift */; };
 		OD000001 /* OnDeviceSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = OD100001 /* OnDeviceSTTService.swift */; };
 		OT000001 /* OnDeviceTTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = OT100001 /* OnDeviceTTSService.swift */; };
-		FM000001 /* FuzzyMatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = FM100001 /* FuzzyMatch.swift */; };
+		SP000002 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP000001 /* SoundPlayer.swift */; };
+		WW000001 /* WakeWordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW100001 /* WakeWordService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AE100001 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
-		AS100001 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
-		SP000001 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
+		2D227C172F5C12E100F078BE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRelayService.swift; sourceTree = "<group>"; };
 		AA100001 /* KuromiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KuromiApp.swift; sourceTree = "<group>"; };
 		AA100002 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AA100003 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
@@ -38,14 +38,16 @@
 		AA100008 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		AA100010 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		AA100011 /* GatewayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayService.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* AudioRelayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRelayService.swift; sourceTree = "<group>"; };
-		WW100001 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
-		AC100001 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
-		OD100001 /* OnDeviceSTTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceSTTService.swift; sourceTree = "<group>"; };
-		OT100001 /* OnDeviceTTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTTSService.swift; sourceTree = "<group>"; };
-		FM100001 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
 		AA200001 /* KuromiApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KuromiApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA200002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AC100001 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		AE100001 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		AS100001 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
+		FM100001 /* FuzzyMatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatch.swift; sourceTree = "<group>"; };
+		OD100001 /* OnDeviceSTTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceSTTService.swift; sourceTree = "<group>"; };
+		OT100001 /* OnDeviceTTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTTSService.swift; sourceTree = "<group>"; };
+		SP000001 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
+		WW100001 /* WakeWordService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 		AA500000 = {
 			isa = PBXGroup;
 			children = (
+				2D227C172F5C12E100F078BE /* Assets.xcassets */,
 				AA400000 /* KuromiApp */,
 				AA600000 /* Products */,
 			);
@@ -198,6 +201,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D227C182F5C12E100F078BE /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,12 +359,15 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = XN7996V82Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = KuromiApp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenVoice;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kuromi.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tamidi.openvoice.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -378,12 +385,15 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = XN7996V82Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = KuromiApp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenVoice;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kuromi.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tamidi.openvoice.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -415,7 +425,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = AA000000 /* Project object */;
 }
