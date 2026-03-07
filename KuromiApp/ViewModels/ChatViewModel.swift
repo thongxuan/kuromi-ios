@@ -15,6 +15,7 @@ class ChatViewModel: ObservableObject {
     @Published var reconnectAttemptCount: Int = 0
     @Published var isLoudSpeaker: Bool = UserDefaults.standard.object(forKey: "kuromi_loud_speaker") == nil
         ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
+    @Published var isSessionActive: Bool = false
 
     /// Expose chatState from AudioEngine.
     var chatState: ChatState {
@@ -166,6 +167,7 @@ class ChatViewModel: ObservableObject {
         // Play start beep, then after 0.5s delay transition to listening
         SoundPlayer.playStartBeep { [weak self] in
             guard let self = self else { return }
+            self.isSessionActive = true
             self.audioEngine.chatState = .listening
 
             if self.isOnDeviceMode {
@@ -195,6 +197,7 @@ class ChatViewModel: ObservableObject {
         // Play stop beep, then after 0.5s delay transition to idle
         SoundPlayer.playStopBeep { [weak self] in
             guard let self = self else { return }
+            self.isSessionActive = false
             self.audioEngine.chatState = .idle
             self.resumeWakeWord()
         }

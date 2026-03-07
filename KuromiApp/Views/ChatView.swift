@@ -170,7 +170,7 @@ struct ChatView: View {
 
     private var orbButton: some View {
         Button(action: { viewModel.toggleSpeaking() }) {
-            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel)
+            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel, isSessionActive: viewModel.isSessionActive)
         }
         .disabled(!viewModel.isToggleEnabled)
         .opacity(viewModel.isToggleEnabled ? 1.0 : 0.5)
@@ -183,6 +183,7 @@ struct ChatView: View {
 struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
+    let isSessionActive: Bool
 
     private let containerSize: CGFloat = 240
     private let orbBase: CGFloat = 132
@@ -190,31 +191,33 @@ struct OrbView: View {
     @State private var thinkingRotation: Double = 0
     @State private var thinkingPulse: CGFloat = 1.0
 
-    /// Displayed state — debounces .idle by 0.5s to avoid flash between listening→aiThinking
-    @State private var displayState: ChatState = .idle
-    @State private var idleDebounceTask: DispatchWorkItem? = nil
-
-    // Orb scale reactive to voice level when listening
-    private var orbScale: CGFloat {
-        switch displayState {
-        case .listening: return min(1.0 + CGFloat(inputLevel) * 3.0, 1.5)
-        default: return 1.0
+    // 3 visual states: idle | userSpeaking | ai
+    private enum OrbVisual { case idle, userSpeaking, ai }
+    private var visual: OrbVisual {
+        guard isSessionActive else { return .idle }
+        switch chatState {
+        case .listening: return .userSpeaking
+        default: return .ai
         }
     }
 
+    // Orb scale reactive to voice level when listening
+    private var orbScale: CGFloat {
+        visual == .userSpeaking ? min(1.0 + CGFloat(inputLevel) * 3.0, 1.5) : 1.0
+    }
+
     private var orbColor: Color {
-        switch displayState {
-        case .idle, .connecting: return Color.appLabel.opacity(0.13)
-        case .listening: return Color.gray.opacity(0.6)
-        case .aiThinking, .aiSpeaking: return Color.accentColor.opacity(0.75)
-        case .error: return Color.red.opacity(0.4)
+        switch visual {
+        case .idle: return Color.appLabel.opacity(0.13)
+        case .userSpeaking: return Color.gray.opacity(0.6)
+        case .ai: return Color.accentColor.opacity(0.75)
         }
     }
 
     var body: some View {
         ZStack {
-            // Breathing rings (listening only)
-            if case .listening = displayState {
+            // Breathing rings — user speaking
+            if visual == .userSpeaking {
                 ForEach(0..<2, id: \.self) { i in
                     Circle()
                         .strokeBorder(Color.gray.opacity(0.15 - Double(i) * 0.05), lineWidth: 1)
@@ -223,8 +226,8 @@ struct OrbView: View {
                 }
             }
 
-            // Rotating arc + pulse for aiThinking and aiSpeaking
-            if displayState == .aiThinking || displayState == .aiSpeaking {
+            // Rotating arc + pulse — AI (thinking/speaking)
+            if visual == .ai {
                 PulsingRingView(baseSize: orbBase)
                 Circle()
                     .trim(from: 0, to: 0.25)
@@ -244,18 +247,16 @@ struct OrbView: View {
 
             // Main orb
             Circle()
-                .fill(
-                    RadialGradient(
-                        gradient: Gradient(colors: [orbColor, orbColor.opacity(0.45)]),
-                        center: .center, startRadius: 0, endRadius: orbBase / 2
-                    )
-                )
+                .fill(RadialGradient(
+                    gradient: Gradient(colors: [orbColor, orbColor.opacity(0.45)]),
+                    center: .center, startRadius: 0, endRadius: orbBase / 2
+                ))
                 .frame(width: orbBase, height: orbBase)
-                .scaleEffect((displayState == .aiThinking || displayState == .aiSpeaking) ? thinkingPulse : orbScale)
+                .scaleEffect(visual == .ai ? thinkingPulse : orbScale)
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
-            // Icon (hidden during AI states — arc animation takes over)
+            // Icon
             if !orbIcon.isEmpty {
                 Image(systemName: orbIcon)
                     .font(.system(size: 24, weight: .light))
@@ -265,28 +266,14 @@ struct OrbView: View {
             }
         }
         .frame(width: containerSize, height: containerSize)
-        .animation(.easeInOut(duration: 0.35), value: orbColor)
-        .onChange(of: chatState) { newState in
-            idleDebounceTask?.cancel()
-            if newState == .idle || newState == .connecting {
-                // Debounce idle — wait 0.5s before showing, avoids flash between listening→aiThinking
-                let task = DispatchWorkItem { displayState = newState }
-                idleDebounceTask = task
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: task)
-            } else {
-                // Non-idle states show immediately
-                displayState = newState
-            }
-        }
+        .animation(.easeInOut(duration: 0.35), value: visual == .idle)
     }
 
     private var orbIcon: String {
-        switch displayState {
-        case .connecting: return "antenna.radiowaves.left.and.right"
+        switch visual {
         case .idle: return "waveform"
-        case .listening: return "mic.fill"
-        case .aiThinking, .aiSpeaking: return ""  // no icon — arc animation speaks for itself
-        case .error: return "exclamationmark.triangle"
+        case .userSpeaking: return "mic.fill"
+        case .ai: return ""  // arc animation speaks for itself
         }
     }
 }
