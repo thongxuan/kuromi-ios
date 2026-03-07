@@ -350,20 +350,12 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.audioEngine.chatState = .aiSpeaking
                 AudioSessionManager.shared.setSpeaker(self.isLoudSpeaker)
-                // Reduce mic gain during TTS to suppress echo (loud speaker only)
-                if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(0.0)
-                }
             }
         }
 
         relayService.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Restore mic gain
-                if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(1.0)
-                }
 
                 // Flush any pre-buffer text
                 if !self.preBufferText.isEmpty {
@@ -467,18 +459,12 @@ class ChatViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.audioEngine.chatState = .aiSpeaking
-                if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(0.0)
-                }
             }
         }
 
         onDeviceTTSService.onFinish = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(1.0)
-                }
                 self.accumulatedResponse = ""
 
                 // Auto-continue to listening silently (NO sound on auto-resume)

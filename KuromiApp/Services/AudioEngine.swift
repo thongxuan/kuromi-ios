@@ -23,8 +23,24 @@ final class AudioEngine: ObservableObject {
     @Published private(set) var isRunning = false
     @Published var chatState: ChatState = .connecting {
         didSet {
-            if chatState != oldValue {
-                print("[AudioEngine] state: \(oldValue) -> \(chatState)")
+            guard chatState != oldValue else { return }
+            print("[AudioEngine] state: \(oldValue) -> \(chatState)")
+
+            // Mic gain management: reduce as soon as AI takes over, restore when user speaks
+            switch chatState {
+            case .aiThinking, .aiSpeaking:
+                // Reduce mic gain early (before TTS starts) to prevent echo barge-in
+                if isLoudSpeaker {
+                    DispatchQueue.main.async {
+                        AudioSessionManager.shared.setMicGain(0.0)
+                    }
+                }
+            case .listening, .idle:
+                // Restore mic gain when user's turn
+                DispatchQueue.main.async {
+                    AudioSessionManager.shared.setMicGain(1.0)
+                }
+            default: break
             }
         }
     }
