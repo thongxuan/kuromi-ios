@@ -53,27 +53,36 @@ final class AudioEngine: ObservableObject {
     /// AirPods/headphone: no threshold needed (acoustic isolation)
     /// Inner speaker: mild scaling
     /// Loud speaker: aggressive scaling
+    /// Echo gate: suppress TTS mic feedback. factor × volume, capped at 0.80.
     private let echoGateFactor: [String: Float] = [
-        "airpods":      0.0,   // AirPods — no echo, no gating needed
-        "headphone":    0.0,   // wired headphones — no echo
-        "inner":        0.30,  // inner speaker — mild (threshold = volume * 0.30)
-        "loud":         1.20,  // loud speaker — very aggressive (threshold = volume * 1.20, capped at 0.95)
+        "airpods":   0.00,  // AirPods — acoustic isolation, no echo
+        "headphone": 0.00,  // wired — no echo
+        "inner":     0.25,  // inner speaker — mild feedback
+        "loud":      0.70,  // loud speaker — heavy feedback
     ]
 
-    /// Current output mode — set by AudioSessionManager/ChatViewModel
+    /// Barge-in: detect intentional user interruption during TTS.
+    /// Independent from echo gate — absolute threshold per mode.
+    private let bargeInByMode: [String: Float] = [
+        "airpods":   0.30,  // easy — no echo risk
+        "headphone": 0.30,  // easy — no echo risk
+        "inner":     0.55,  // moderate
+        "loud":      0.85,  // hard — must speak clearly above echo
+    ]
+
+    /// Current output mode — set by ChatViewModel
     var outputMode: String = "inner"  // "airpods" | "headphone" | "inner" | "loud"
 
-    /// Dynamic echo gate threshold = factor × volume, capped at 0.95
+    /// Echo gate threshold = factor × volume, capped at 0.80
     var echoGateThreshold: Float {
         let volume = AVAudioSession.sharedInstance().outputVolume
-        let factor = echoGateFactor[outputMode] ?? 0.30
-        return min(factor * volume, 0.95)
+        let factor = echoGateFactor[outputMode] ?? 0.25
+        return min(factor * volume, 0.80)
     }
 
-    /// Barge-in = echo gate + 1.00, meaning barge-in is effectively disabled during TTS
-    /// (echoGate already near 0.95 for loud speaker at high volume — user must shout clearly)
+    /// Barge-in threshold — absolute per mode, independent of echo gate
     var bargeInThreshold: Float {
-        return min(echoGateThreshold + 1.00, 0.95)
+        return bargeInByMode[outputMode] ?? 0.55
     }
 
     // MARK: - Private
