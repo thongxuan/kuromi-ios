@@ -46,22 +46,21 @@ struct SetupView: View {
                 }
                 .padding(.horizontal, 24)
 
-                // App version — right below language
-                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-                   let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                    Text("v\(version) (\(build))")
-                        .font(.caption2)
-                        .foregroundColor(.appSecondaryLabel.opacity(0.5))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.horizontal, 24)
+                // Version + About link grouped together
+                VStack(spacing: 4) {
+                    if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                       let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                        Text("v\(version) (\(build))")
+                            .font(.caption)
+                            .foregroundColor(.appSecondaryLabel.opacity(0.6))
+                    }
+                    if let url = URL(string: "https://openvoice.tamidi.com") {
+                        Link("About OpenVoice", destination: url)
+                            .font(.caption)
+                    }
                 }
-
-                // About us link
-                if let url = URL(string: "https://openvoice.tamidi.com") {
-                    Link("About OpenVoice", destination: url)
-                        .font(.caption2)
-                        .foregroundColor(.appSecondaryLabel.opacity(0.5))
-                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
 
                 if !viewModel.errorMessage.isEmpty {
                     Text(viewModel.errorMessage)
