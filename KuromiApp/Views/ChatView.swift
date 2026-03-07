@@ -220,13 +220,12 @@ struct OrbView: View {
                 }
             }
 
-            // Pulsing ring for aiThinking
-            if case .aiThinking = chatState {
+            // Rotating arc + pulse for aiThinking and aiSpeaking
+            if chatState == .aiThinking || chatState == .aiSpeaking {
                 PulsingRingView(baseSize: orbBase)
-                // Rotating arc to indicate "thinking"
                 Circle()
                     .trim(from: 0, to: 0.25)
-                    .stroke(Color.orange.opacity(0.6), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(orbColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .frame(width: orbBase + 16, height: orbBase + 16)
                     .rotationEffect(.degrees(thinkingRotation))
                     .onAppear {
@@ -249,7 +248,7 @@ struct OrbView: View {
                     )
                 )
                 .frame(width: orbBase, height: orbBase)
-                .scaleEffect(chatState == .aiThinking ? thinkingPulse : orbScale)
+                .scaleEffect((chatState == .aiThinking || chatState == .aiSpeaking) ? thinkingPulse : orbScale)
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
