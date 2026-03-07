@@ -165,7 +165,7 @@ struct ChatView: View {
 
     private var orbButton: some View {
         Button(action: { viewModel.toggleSpeaking() }) {
-            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel, isSessionActive: viewModel.isSessionActive)
+            OrbView(chatState: viewModel.chatState, inputLevel: viewModel.inputLevel, isSessionActive: viewModel.isSessionActive, isRelayMode: !viewModel.isOnDeviceMode)
         }
         .disabled(!viewModel.isToggleEnabled)
         .opacity(viewModel.isToggleEnabled ? 1.0 : 0.5)
@@ -179,6 +179,7 @@ struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
     let isSessionActive: Bool
+    var isRelayMode: Bool = false
 
     private let containerSize: CGFloat = 240
     private let orbBase: CGFloat = 132
@@ -266,7 +267,7 @@ struct OrbView: View {
 
     private var orbIcon: String {
         switch visual {
-        case .idle: return "waveform"
+        case .idle: return isRelayMode ? "waveform.circle.fill" : "waveform"
         case .userSpeaking: return "mic.fill"
         case .ai: return ""  // arc animation speaks for itself
         }
