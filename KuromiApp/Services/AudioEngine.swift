@@ -57,22 +57,23 @@ final class AudioEngine: ObservableObject {
         "airpods":      0.0,   // AirPods — no echo, no gating needed
         "headphone":    0.0,   // wired headphones — no echo
         "inner":        0.30,  // inner speaker — mild (threshold = volume * 0.30)
-        "loud":         0.70,  // loud speaker — aggressive (threshold = volume * 0.70)
+        "loud":         1.20,  // loud speaker — very aggressive (threshold = volume * 1.20, capped at 0.95)
     ]
 
     /// Current output mode — set by AudioSessionManager/ChatViewModel
     var outputMode: String = "inner"  // "airpods" | "headphone" | "inner" | "loud"
 
-    /// Dynamic echo gate threshold = factor × volume
+    /// Dynamic echo gate threshold = factor × volume, capped at 0.95
     var echoGateThreshold: Float {
         let volume = AVAudioSession.sharedInstance().outputVolume
         let factor = echoGateFactor[outputMode] ?? 0.30
-        return factor * volume
+        return min(factor * volume, 0.95)
     }
 
-    /// Barge-in threshold — echo gate + fixed offset, capped at 0.85
+    /// Barge-in = echo gate + 1.00, meaning barge-in is effectively disabled during TTS
+    /// (echoGate already near 0.95 for loud speaker at high volume — user must shout clearly)
     var bargeInThreshold: Float {
-        return min(echoGateThreshold + 1.00, 0.85)
+        return min(echoGateThreshold + 1.00, 0.95)
     }
 
     // MARK: - Private
