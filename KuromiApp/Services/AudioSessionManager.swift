@@ -18,7 +18,7 @@ final class AudioSessionManager {
         do {
             try session.setCategory(
                 .playAndRecord,
-                mode: .default,
+                mode: .voiceChat,  // enables iOS built-in AEC (acoustic echo cancellation)
                 options: [.allowBluetooth, .allowBluetoothA2DP]
             )
             try session.setActive(true)
