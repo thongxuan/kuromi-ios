@@ -252,13 +252,13 @@ struct OrbView: View {
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
-            // Icon — fixed center, no scale animation
+            // Icon — fixed center, isolated from all parent animations
             if !orbIcon.isEmpty {
                 Image(systemName: orbIcon)
                     .font(.system(size: 28, weight: .light))
                     .foregroundColor(.appLabel.opacity(0.7))
-                    .frame(width: orbBase, height: orbBase)  // match orb size to guarantee center
-                    .animation(nil, value: orbIcon)  // no animation on icon change
+                    .frame(width: orbBase, height: orbBase)
+                    .transaction { $0.animation = nil }  // cancel ALL inherited animations
             }
         }
         .frame(width: containerSize, height: containerSize)
