@@ -29,6 +29,7 @@ class AudioRelayService: NSObject, ObservableObject {
     private var ttsBuffer = Data()
     var useSpeaker: Bool = false
     private var isReceivingTTS = false
+    private var isBargingIn = false  // blocks playTTSBuffer after barge-in
 
     private var reconnectTimer: Timer?
     private var reconnectAttempts = 0
@@ -136,7 +137,8 @@ class AudioRelayService: NSObject, ObservableObject {
 
     func sendBargeIn() {
         sendJSON(["type": "barge_in"])
-        // Stop TTS immediately on iOS side (don't wait for relay tts_abort)
+        // Stop TTS immediately — block any pending asyncAfter playTTSBuffer
+        isBargingIn = true
         isReceivingTTS = false
         isPlayingTTS = false
         audioPlayer?.stop()
@@ -200,6 +202,7 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.onAIText?(text)
 
             case "tts_start":
+                self.isBargingIn = false  // reset for new TTS turn
                 self.ttsBuffer = Data()
                 self.isReceivingTTS = true
                 self.isPlayingTTS = true
@@ -240,6 +243,7 @@ class AudioRelayService: NSObject, ObservableObject {
     // MARK: - TTS Playback
 
     private func playTTSBuffer() {
+        guard !isBargingIn else { return }  // barge-in: don't play buffered audio
         guard !ttsBuffer.isEmpty else {
             isPlayingTTS = false
             onTTSEnd?()
