@@ -131,6 +131,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - State Transitions
 
     /// Start listening - called by orb tap (in idle/aiSpeaking) or wake word.
+    /// Plays start beep FIRST, then after 0.5s delay transitions to LISTENING state.
     private func triggerStart() {
         print("[chat] triggerStart()")
 
@@ -148,8 +149,8 @@ class ChatViewModel: ObservableObject {
         currentTranscript = ""
         accumulatedResponse = ""
 
-        // Play start sound, then transition to listening
-        SoundPlayer.playStart { [weak self] in
+        // Play start beep, then after 0.5s delay transition to listening
+        SoundPlayer.playStartBeep { [weak self] in
             guard let self = self else { return }
             self.audioEngine.chatState = .listening
 
@@ -161,16 +162,14 @@ class ChatViewModel: ObservableObject {
     }
 
     /// Stop listening - called by orb tap (in listening/aiThinking) or stop phrase.
+    /// Plays stop beep FIRST, then after 0.5s delay transitions to IDLE state.
     private func triggerStop() {
         print("[chat] triggerStop()")
 
-        // Play stop sound
-        SoundPlayer.playStop()
-
-        // Stop STT
+        // Stop STT immediately
         onDeviceSTTService.stop()
 
-        // Tell relay to stop processing
+        // Tell relay to stop processing immediately
         if !isOnDeviceMode {
             relayService.sendStopSignal()
         }
@@ -179,9 +178,12 @@ class ChatViewModel: ObservableObject {
         preBufferText = ""
         currentTranscript = ""
 
-        // Go back to idle and resume wake word
-        audioEngine.chatState = .idle
-        resumeWakeWord()
+        // Play stop beep, then after 0.5s delay transition to idle
+        SoundPlayer.playStopBeep { [weak self] in
+            guard let self = self else { return }
+            self.audioEngine.chatState = .idle
+            self.resumeWakeWord()
+        }
     }
 
     // MARK: - Audio Engine Consumers
@@ -344,10 +346,10 @@ class ChatViewModel: ObservableObject {
                     self.preBufferText = ""
                 }
 
-                // Auto-continue: go back to listening for next turn
+                // Auto-continue: silently go back to listening for next turn (NO sound)
                 if self.isToggleEnabled {
                     self.audioEngine.chatState = .listening
-                    SoundPlayer.playStart()
+                    // No sound on auto-resume after TTS
                 } else {
                     self.audioEngine.chatState = .idle
                     self.resumeWakeWord()
@@ -358,9 +360,9 @@ class ChatViewModel: ObservableObject {
         relayService.onMicStop = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Relay detected silence - transition to aiThinking
+                // Relay detected silence - transition to aiThinking (NO sound)
+                // Sound only plays on explicit user stop via triggerStop()
                 if case .listening = self.chatState {
-                    SoundPlayer.playStop()
                     self.audioEngine.chatState = .aiThinking
                 }
             }
@@ -447,12 +449,11 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.accumulatedResponse = ""
 
-                // Auto-continue to listening
+                // Auto-continue to listening silently (NO sound on auto-resume)
                 if self.isToggleEnabled {
                     self.audioEngine.chatState = .listening
-                    SoundPlayer.playStart { [weak self] in
-                        self?.onDeviceSTTService.start(language: self?.settings.sttLanguage ?? "en")
-                    }
+                    // Start STT immediately without sound
+                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
                 } else {
                     self.audioEngine.chatState = .idle
                     self.resumeWakeWord()
@@ -500,7 +501,8 @@ class ChatViewModel: ObservableObject {
 
             DispatchQueue.main.async {
                 self.currentTranscript = ""
-                SoundPlayer.playStop()
+                // No sound here - silence/final transcript is not user-initiated stop
+                // Sound only plays on explicit stop via triggerStop()
 
                 if !text.isEmpty {
                     self.messages.append(Message(role: .user, text: text))
