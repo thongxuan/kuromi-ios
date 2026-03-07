@@ -56,6 +56,13 @@ struct SetupView: View {
                         .padding(.horizontal, 24)
                 }
 
+                // About us link
+                if let url = URL(string: "https://openvoice.tamidi.com") {
+                    Link("About OpenVoice", destination: url)
+                        .font(.caption2)
+                        .foregroundColor(.appSecondaryLabel.opacity(0.5))
+                }
+
                 if !viewModel.errorMessage.isEmpty {
                     Text(viewModel.errorMessage)
                         .foregroundColor(.red)
