@@ -136,10 +136,13 @@ class AudioRelayService: NSObject, ObservableObject {
 
     func sendBargeIn() {
         sendJSON(["type": "barge_in"])
-        // Stop any buffered TTS audio playing on iOS side
+        // Stop TTS immediately on iOS side (don't wait for relay tts_abort)
+        isReceivingTTS = false
+        isPlayingTTS = false
         audioPlayer?.stop()
         audioPlayer = nil
         ttsBuffer = Data()
+        onTTSEnd?()
     }
 
     func sendTranscript(_ text: String) {
