@@ -254,32 +254,11 @@ class AudioRelayService: NSObject, ObservableObject {
             audioPlayer = try AVAudioPlayer(data: ttsBuffer)
             audioPlayer?.delegate = self
             audioPlayer?.volume = 1.0
-            audioPlayer?.isMeteringEnabled = true
             audioPlayer?.play()
-            startLevelPolling()
         } catch {
             print("[relay] playback error: \(error)")
             isPlayingTTS = false
             onTTSEnd?()
-        }
-    }
-
-    // MARK: - TTS Level Polling
-
-    private var levelTimer: Timer?
-
-    private func startLevelPolling() {
-        levelTimer?.invalidate()
-        levelTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self, let player = self.audioPlayer, player.isPlaying else {
-                self?.levelTimer?.invalidate()
-                self?.ttsLevel = 0
-                return
-            }
-            player.updateMeters()
-            let db = player.averagePower(forChannel: 0)  // -160 to 0 dB
-            let normalized = max(0, (db + 50) / 50)  // map -50..0 dB → 0..1
-            self.ttsLevel = normalized
         }
     }
 
