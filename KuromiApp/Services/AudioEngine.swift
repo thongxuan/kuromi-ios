@@ -121,6 +121,13 @@ final class AudioEngine: ObservableObject {
     }
 
     /// Stop the audio engine. Call when ChatView disappears.
+    func restartEngine() {
+        stopEngine()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.startEngine()
+        }
+    }
+
     func stopEngine() {
         guard isRunning else { return }
 

@@ -579,17 +579,39 @@ class ChatViewModel: ObservableObject {
     // MARK: - Foreground Observer
 
     private func observeForeground() {
+        // Restart audio engine + reconnect socket when app returns from background
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                if self.isOnDeviceMode {
-                    if case .disconnected = self.gatewayService.state {
-                        self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
+                print("[lifecycle] didBecomeActive — restarting audio engine")
+
+                // Restart audio engine first
+                AudioSessionManager.shared.setupForChat(loudSpeaker: self.isLoudSpeaker)
+                self.audioEngine.restartEngine()
+
+                // Then reconnect socket (slight delay to let engine stabilize)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if self.isOnDeviceMode {
+                        if case .disconnected = self.gatewayService.state {
+                            self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
+                        }
+                    } else {
+                        if !self.relayService.isConnected {
+                            self.relayService.appDidBecomeActive()
+                        }
                     }
-                } else {
-                    self.relayService.appDidBecomeActive()
                 }
+            }
+            .store(in: &cancellables)
+
+        // Stop audio engine when going to background
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                print("[lifecycle] didEnterBackground — stopping audio engine")
+                self.audioEngine.stopEngine()
             }
             .store(in: &cancellables)
     }
