@@ -210,7 +210,7 @@ struct OrbView: View {
         switch visual {
         case .idle: return Color.appLabel.opacity(0.13)
         case .userSpeaking: return Color.gray.opacity(0.6)
-        case .ai: return Color.accentColor.opacity(0.75)
+        case .ai: return Color.appAccent.opacity(0.75)
         }
     }
 
