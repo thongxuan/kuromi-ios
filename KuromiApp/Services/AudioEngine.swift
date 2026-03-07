@@ -67,7 +67,7 @@ final class AudioEngine: ObservableObject {
         "airpods":   0.30,  // easy — no echo risk
         "headphone": 0.30,  // easy — no echo risk
         "inner":     0.55,  // moderate
-        "loud":      0.85,  // hard — must speak clearly above echo
+        "loud":      0.95,  // very hard — must shout above TTS echo
     ]
 
     /// Current output mode — set by ChatViewModel
