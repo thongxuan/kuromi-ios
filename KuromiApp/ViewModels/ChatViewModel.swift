@@ -39,7 +39,7 @@ class ChatViewModel: ObservableObject {
     // MARK: - Settings
 
     private var settings: AppSettings
-    private var isOnDeviceMode: Bool { settings.useOnDeviceVoice }
+    var isOnDeviceMode: Bool { settings.useOnDeviceVoice }
     var wakePhrase: String { settings.wakePhrase }
 
     // MARK: - Private State

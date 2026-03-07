@@ -255,7 +255,7 @@ struct OrbView: View {
             // Icon
             if !orbIcon.isEmpty {
                 Image(systemName: orbIcon)
-                    .font(.system(size: 24, weight: .light))
+                    .font(.system(size: 30, weight: .light))
                     .foregroundColor(.appLabel.opacity(0.7))
                     .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
                     .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
@@ -267,7 +267,7 @@ struct OrbView: View {
 
     private var orbIcon: String {
         switch visual {
-        case .idle: return isRelayMode ? "waveform.circle.fill" : "waveform"
+        case .idle: return isRelayMode ? "online" : "waveform"
         case .userSpeaking: return "mic.fill"
         case .ai: return ""  // arc animation speaks for itself
         }
