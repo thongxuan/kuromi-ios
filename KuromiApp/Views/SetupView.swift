@@ -52,7 +52,7 @@ struct SetupView: View {
                     Text("v\(version) (\(build))")
                         .font(.caption2)
                         .foregroundColor(.appSecondaryLabel.opacity(0.5))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.horizontal, 24)
                 }
 
