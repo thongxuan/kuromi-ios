@@ -46,11 +46,27 @@ final class AudioEngine: ObservableObject {
 
     // MARK: - Thresholds
 
-    /// Amplitude threshold to gate TTS echo during aiSpeaking.
-    let echoGateThreshold: Float = 0.15
+    /// Whether loud speaker (external) is active — set by ChatViewModel
+    var isLoudSpeaker: Bool = false
 
-    /// Amplitude threshold for barge-in detection.
-    let bargeInThreshold: Float = 0.3
+    /// Dynamic echo gate threshold based on speaker mode + current volume level.
+    /// - Inner speaker / headphone: base 0.05, scales lightly with volume
+    /// - Loud speaker: base 0.25, scales more aggressively with volume
+    var echoGateThreshold: Float {
+        let volume = AVAudioSession.sharedInstance().outputVolume  // 0.0–1.0
+        if isLoudSpeaker {
+            // Loud speaker: high base + strong volume scaling (0.25 → 0.65)
+            return 0.25 + volume * 0.40
+        } else {
+            // Inner speaker / headphone: low base + gentle volume scaling (0.05 → 0.20)
+            return 0.05 + volume * 0.15
+        }
+    }
+
+    /// Barge-in threshold — slightly above echo gate to avoid false triggers
+    var bargeInThreshold: Float {
+        return min(echoGateThreshold + 0.15, 0.85)
+    }
 
     // MARK: - Private
 

@@ -76,6 +76,7 @@ class ChatViewModel: ObservableObject {
     func onAppear() {
         // Start the always-on audio engine
         AudioSessionManager.shared.setupForChat(loudSpeaker: isLoudSpeaker)
+        audioEngine.isLoudSpeaker = isLoudSpeaker
         audioEngine.startEngine()
 
         // Start connection
@@ -126,6 +127,7 @@ class ChatViewModel: ObservableObject {
         isLoudSpeaker.toggle()
         UserDefaults.standard.set(isLoudSpeaker, forKey: "kuromi_loud_speaker")
         AudioSessionManager.shared.setSpeaker(isLoudSpeaker)
+        audioEngine.isLoudSpeaker = isLoudSpeaker
     }
 
     // MARK: - State Transitions
@@ -545,6 +547,7 @@ class ChatViewModel: ObservableObject {
             guard let self = self, self.isLoudSpeaker else { return }
             self.speakerStateBeforeHeadphones = true
             self.isLoudSpeaker = false
+            self.audioEngine.isLoudSpeaker = false
             UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
             AudioSessionManager.shared.setSpeaker(false)
         }
@@ -552,6 +555,7 @@ class ChatViewModel: ObservableObject {
         AudioSessionManager.shared.onHeadphonesDisconnected = { [weak self] in
             guard let self = self, let previous = self.speakerStateBeforeHeadphones else { return }
             self.isLoudSpeaker = previous
+            self.audioEngine.isLoudSpeaker = previous
             UserDefaults.standard.set(previous, forKey: "kuromi_loud_speaker")
             AudioSessionManager.shared.setSpeaker(previous)
             self.speakerStateBeforeHeadphones = nil
