@@ -47,7 +47,16 @@ class GatewayService: NSObject, ObservableObject {
     }
 
     func sendMessage(_ text: String) {
-        guard case .connected = state else { return }
+        guard case .connected = state else {
+            print("[gateway] sendMessage DROPPED — not connected, state=\(state)")
+            // Retry after reconnect
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                guard let self = self, case .connected = self.state else { return }
+                print("[gateway] sendMessage retry — sending: \(text.prefix(40))")
+                self.sendMessage(text)
+            }
+            return
+        }
         let idempotencyKey = UUID().uuidString
         let params: [String: Any] = [
             "sessionKey": sessionKey,
