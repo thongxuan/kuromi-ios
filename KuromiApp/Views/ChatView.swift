@@ -34,7 +34,7 @@ struct ChatView: View {
                 // Orb button
                 orbButton
 
-                // Status label dưới orb
+                // Status label below orb
                 statusLabel
                     .padding(.top, 8)
 
@@ -112,16 +112,17 @@ struct ChatView: View {
     private var connectionColor: Color {
         switch viewModel.chatState {
         case .connecting: return .yellow
-        case .idle, .userSpeaking, .aiSpeaking: return .green
+        case .idle, .listening, .aiThinking, .aiSpeaking: return .green
         case .error: return .red
         }
     }
 
     private var connectionLabel: String {
         switch viewModel.chatState {
-        case .connecting: return "Connecting…"
+        case .connecting: return "Connecting..."
         case .idle: return "Connected"
-        case .userSpeaking: return "Listening"
+        case .listening: return "Listening"
+        case .aiThinking: return "Thinking"
         case .aiSpeaking: return "Speaking"
         case .error(let msg): return "Error: \(msg)"
         }
@@ -133,16 +134,18 @@ struct ChatView: View {
     private var statusLabel: some View {
         let label: String = {
             switch viewModel.chatState {
-            case .connecting: return "Connecting to gateway…"
+            case .connecting: return "Connecting to gateway..."
             case .idle: return viewModel.wakePhrase.isEmpty ? "Tap to speak" : "Tap or say '\(viewModel.wakePhrase)'"
-            case .userSpeaking: return "Listening…"
-            case .aiSpeaking: return "Speaking…"
+            case .listening: return "Listening..."
+            case .aiThinking: return "Thinking..."
+            case .aiSpeaking: return "Speaking..."
             case .error(let msg): return msg
             }
         }()
         let color: Color = {
             switch viewModel.chatState {
-            case .userSpeaking: return Color.appLabel.opacity(0.5)
+            case .listening: return Color.appLabel.opacity(0.5)
+            case .aiThinking: return .orange.opacity(0.5)
             case .aiSpeaking: return .purple.opacity(0.5)
             case .error: return .red
             default: return .gray
@@ -150,7 +153,7 @@ struct ChatView: View {
         }()
         let visible: Bool = {
             switch viewModel.chatState {
-            case .userSpeaking, .aiSpeaking: return false
+            case .listening, .aiThinking, .aiSpeaking: return false
             default: return true
             }
         }()
@@ -184,10 +187,10 @@ struct OrbView: View {
     private let containerSize: CGFloat = 160
     private let orbBase: CGFloat = 88
 
-    // Orb scale reactive theo voice level khi user speaking
+    // Orb scale reactive to voice level when listening
     private var orbScale: CGFloat {
         switch chatState {
-        case .userSpeaking: return min(1.0 + CGFloat(inputLevel) * 3.0, 1.5)
+        case .listening: return min(1.0 + CGFloat(inputLevel) * 3.0, 1.5)
         default: return 1.0
         }
     }
@@ -195,22 +198,28 @@ struct OrbView: View {
     private var orbColor: Color {
         switch chatState {
         case .idle, .connecting: return Color.appLabel.opacity(0.13)
-        case .userSpeaking: return Color.gray.opacity(0.6)   // xám khi anh nói
-        case .aiSpeaking: return Color.purple.opacity(0.88)  // tím khi em trả lời
+        case .listening: return Color.gray.opacity(0.6)
+        case .aiThinking: return Color.orange.opacity(0.6)
+        case .aiSpeaking: return Color.purple.opacity(0.88)
         case .error: return Color.red.opacity(0.4)
         }
     }
 
     var body: some View {
         ZStack {
-            // Breathing rings (user speaking only, no rays)
-            if case .userSpeaking = chatState {
+            // Breathing rings (listening only)
+            if case .listening = chatState {
                 ForEach(0..<2, id: \.self) { i in
                     Circle()
                         .strokeBorder(Color.gray.opacity(0.15 - Double(i) * 0.05), lineWidth: 1)
                         .frame(width: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20,
                                height: orbBase * min(orbScale, 1.5) + CGFloat(i + 1) * 20)
                 }
+            }
+
+            // Pulsing ring for aiThinking
+            if case .aiThinking = chatState {
+                PulsingRingView(baseSize: orbBase)
             }
 
             // Main orb
@@ -241,10 +250,31 @@ struct OrbView: View {
         switch chatState {
         case .connecting: return "antenna.radiowaves.left.and.right"
         case .idle: return "waveform"
-        case .userSpeaking: return "mic.fill"
+        case .listening: return "mic.fill"
+        case .aiThinking: return "ellipsis"
         case .aiSpeaking: return "speaker.wave.2.fill"
         case .error: return "exclamationmark.triangle"
         }
+    }
+}
+
+// MARK: - Pulsing Ring View (for aiThinking state)
+
+struct PulsingRingView: View {
+    let baseSize: CGFloat
+    @State private var scale: CGFloat = 1.0
+    @State private var opacity: Double = 0.4
+
+    var body: some View {
+        Circle()
+            .strokeBorder(Color.orange.opacity(opacity), lineWidth: 2)
+            .frame(width: baseSize * scale, height: baseSize * scale)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                    scale = 1.3
+                    opacity = 0.1
+                }
+            }
     }
 }
 
@@ -254,7 +284,7 @@ struct SunRaysView: View {
 
     private let rayCount = 12
     private let segmentsPerRay = 3
-    private let cycleDuration: Double = 3.5  // chậm hơn nữa
+    private let cycleDuration: Double = 3.5
     private let maxReach: CGFloat = 44
     private let segLen: CGFloat = 8
     private let gap: CGFloat = 6
@@ -264,26 +294,19 @@ struct SunRaysView: View {
             Canvas { context, size in
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
                 let t = timeline.date.timeIntervalSinceReferenceDate
-                // global phase 0→1 liên tục
                 let globalPhase = CGFloat(t.truncatingRemainder(dividingBy: cycleDuration) / cycleDuration)
 
                 for rayIndex in 0..<rayCount {
                     let angle = Double(rayIndex) / Double(rayCount) * 2.0 * Double.pi
                     let cosA = CGFloat(Foundation.cos(angle))
                     let sinA = CGFloat(Foundation.sin(angle))
-
-                    // offset mỗi ray lệch pha nhau để không đồng pha
                     let rayOffset = CGFloat(rayIndex) / CGFloat(rayCount)
 
                     for seg in 0..<segmentsPerRay {
-                        // spacing lớn hơn = khoảng cách giữa các segment xa hơn
                         let segOffset = CGFloat(seg) * 0.38
-                        var p = (globalPhase + segOffset + rayOffset * 0.25).truncatingRemainder(dividingBy: 1.0)
-
-                        // dist: từ 0→maxReach trong một chu kỳ
+                        let p = (globalPhase + segOffset + rayOffset * 0.25).truncatingRemainder(dividingBy: 1.0)
                         let dist = gap + p * maxReach
 
-                        // fade in 0→0.15, fade out 0.15→1.0 (fade out nhanh)
                         let fadeIn: Double = min(Double(p) / 0.15, 1.0)
                         let fadeOut: Double = max(1.0 - (Double(p) - 0.15) / 0.85, 0.0)
                         let opacity = fadeIn * fadeOut * 0.9
@@ -305,8 +328,6 @@ struct SunRaysView: View {
         }
     }
 }
-
-
 
 // MARK: - TranscriptListView
 

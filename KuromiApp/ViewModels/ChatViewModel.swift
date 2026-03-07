@@ -2,54 +2,62 @@ import Foundation
 import AVFoundation
 import Combine
 import UIKit
-import AudioToolbox
-
-enum ChatState: Equatable {
-    case connecting
-    case idle
-    case userSpeaking
-    case aiSpeaking
-    case error(String)
-}
 
 class ChatViewModel: ObservableObject {
 
-    // MARK: - Published
+    // MARK: - Published State
 
-    @Published var chatState: ChatState = .connecting
     @Published var messages: [Message] = []
     @Published var currentTranscript: String = ""
-    @Published var inputLevel: Float = 0.0
-    @Published var isToggleEnabled: Bool = false
     @Published var currentAIResponse: String = ""
+    @Published var isToggleEnabled: Bool = false
     @Published var showReconnectButton: Bool = false
     @Published var reconnectAttemptCount: Int = 0
     @Published var isLoudSpeaker: Bool = UserDefaults.standard.object(forKey: "kuromi_loud_speaker") == nil
         ? true : UserDefaults.standard.bool(forKey: "kuromi_loud_speaker")
 
-    // MARK: - Private
+    /// Expose chatState from AudioEngine.
+    var chatState: ChatState {
+        AudioEngine.shared.chatState
+    }
 
+    /// Expose inputLevel from AudioEngine.
+    var inputLevel: Float {
+        AudioEngine.shared.inputLevel
+    }
+
+    // MARK: - Services
+
+    private let audioEngine = AudioEngine.shared
     private var relayService = AudioRelayService()
     private var gatewayService = GatewayService()
     private var wakeWordService = WakeWordService()
     private var onDeviceSTTService = OnDeviceSTTService()
     private var onDeviceTTSService = OnDeviceTTSService()
+
+    // MARK: - Settings
+
     private var settings: AppSettings
     private var isOnDeviceMode: Bool { settings.useOnDeviceVoice }
     var wakePhrase: String { settings.wakePhrase }
+
+    // MARK: - Private State
+
     private var accumulatedResponse: String = ""
+    private var preBufferText: String = ""  // STT text accumulated during aiThinking/aiSpeaking
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
-    private var stopTimeoutTimer: Timer?
-    private var isStopping: Bool = false      // true between stopChat() and finalizeStop()
-    private var speakerStateBeforeHeadphones: Bool? = nil  // saved state when headphones connect
-    private var ignoreNextTTSEnd: Bool = false
-    private var pendingWakeWordResume: Bool = false  // resume wake word after TTS end/timeout
+    private var speakerStateBeforeHeadphones: Bool? = nil
 
     // MARK: - Init
 
     init() {
         settings = AppSettings.load()!
+
+        // Setup buffer consumers
+        setupAudioEngineConsumers()
+
+        // Setup services
         if isOnDeviceMode {
             setupGatewayDirect()
             setupOnDeviceTTS()
@@ -58,13 +66,19 @@ class ChatViewModel: ObservableObject {
             setupRelay()
         }
         setupWakeWord()
+        setupHeadphoneHandling()
         observeForeground()
+        observeAudioEngineState()
     }
 
-    // MARK: - Public API (called by View)
+    // MARK: - View Lifecycle
 
     func onAppear() {
-        setupAudioSession()
+        // Start the always-on audio engine
+        AudioSessionManager.shared.setupForChat(loudSpeaker: isLoudSpeaker)
+        audioEngine.startEngine()
+
+        // Start connection
         connectTimer?.invalidate()
         connectTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
             DispatchQueue.main.async {
@@ -75,11 +89,16 @@ class ChatViewModel: ObservableObject {
     }
 
     func onDisappear() {
-        stopChat()
+        // Stop wake word and STT
+        wakeWordService.stop()
         onDeviceSTTService.stop()
         onDeviceTTSService.stop()
-        wakeWordService.stop()
+
+        // Stop the audio engine when leaving ChatView
+        audioEngine.stopEngine()
     }
+
+    // MARK: - Public API
 
     func reconnect() {
         showReconnectButton = false
@@ -91,121 +110,139 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    /// Orb tap — toggle between start and stop
+    /// Orb tap handler - routes to triggerStart or triggerStop based on state.
     func toggleSpeaking() {
         switch chatState {
-        case .idle, .aiSpeaking: startChat(beep: true)
-        case .userSpeaking:      stopChat()
-        default: break
+        case .idle, .aiSpeaking:
+            triggerStart()
+        case .listening, .aiThinking:
+            triggerStop()
+        default:
+            break
         }
     }
 
     func toggleSpeaker() {
         isLoudSpeaker.toggle()
         UserDefaults.standard.set(isLoudSpeaker, forKey: "kuromi_loud_speaker")
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
-        try? session.setActive(true)
-        try? session.overrideOutputAudioPort(isLoudSpeaker ? .speaker : .none)
+        AudioSessionManager.shared.setSpeaker(isLoudSpeaker)
     }
 
-    // MARK: - Core Chat Actions (shared by manual + wake/stop word)
+    // MARK: - State Transitions
 
-    /// Begin a chat turn — called by: orb tap, wake word detection
-    private func startChat(beep: Bool = true) {
-        // Cancel any pending stop state
-        stopTimeoutTimer?.invalidate()
-        stopTimeoutTimer = nil
-        isStopping = false
-        ignoreNextTTSEnd = false
-        pendingWakeWordResume = false
+    /// Start listening - called by orb tap (in idle/aiSpeaking) or wake word.
+    private func triggerStart() {
+        print("[chat] triggerStart()")
+
+        // If AI is speaking, stop TTS first (barge-in from orb tap)
+        if case .aiSpeaking = chatState {
+            onDeviceTTSService.stop()
+            relayService.resetBargeIn()
+        }
+
+        // Stop wake word (will be resumed when going back to idle)
+        wakeWordService.stop()
+
+        // Clear any pre-buffer from previous turn
+        preBufferText = ""
+        currentTranscript = ""
         accumulatedResponse = ""
 
-        // Stop TTS if playing (barge-in)
-        if isOnDeviceMode && onDeviceTTSService.isSpeaking {
-            onDeviceTTSService.stop()
+        // Play start sound, then transition to listening
+        SoundPlayer.playStart { [weak self] in
+            guard let self = self else { return }
+            self.audioEngine.chatState = .listening
+
+            if self.isOnDeviceMode {
+                self.onDeviceSTTService.start(language: self.settings.sttLanguage)
+            }
+            // Relay mode: AudioEngine will route buffers to relayService automatically
+        }
+    }
+
+    /// Stop listening - called by orb tap (in listening/aiThinking) or stop phrase.
+    private func triggerStop() {
+        print("[chat] triggerStop()")
+
+        // Play stop sound
+        SoundPlayer.playStop()
+
+        // Stop STT
+        onDeviceSTTService.stop()
+
+        // Tell relay to stop processing
+        if !isOnDeviceMode {
+            relayService.sendStopSignal()
         }
 
-        wakeWordService.stop()
-        chatState = .userSpeaking
+        // Clear state
+        preBufferText = ""
         currentTranscript = ""
-        inputLevel = 0.0
 
-        if beep {
-            AudioServicesPlaySystemSound(1111) // begin_record.caf
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                guard let self = self else { return }
-                if self.isOnDeviceMode {
-                    self.setupAudioSession()
-                    self.onDeviceSTTService.start(language: self.settings.sttLanguage)
-                } else {
-                    self.setupAudioSession()
-                    self.relayService.startMic()
+        // Go back to idle and resume wake word
+        audioEngine.chatState = .idle
+        resumeWakeWord()
+    }
+
+    // MARK: - Audio Engine Consumers
+
+    private func setupAudioEngineConsumers() {
+        // Wake word consumer (idle state) - receives native format buffer
+        audioEngine.wakeWordConsumer = { [weak self] buffer in
+            self?.wakeWordService.appendBuffer(buffer)
+        }
+
+        // Relay consumer (listening state) - receives converted PCM buffer
+        audioEngine.relayConsumer = { [weak self] buffer, rms in
+            guard let self = self, !self.isOnDeviceMode else { return }
+            // Relay mode: send PCM to relay
+            self.relayService.appendBuffer(buffer, rms: rms)
+        }
+
+        // On-device STT consumer (listening state) - receives native format buffer
+        audioEngine.onDeviceSTTConsumer = { [weak self] buffer in
+            guard let self = self, self.isOnDeviceMode else { return }
+            // On-device mode: feed to SFSpeechRecognizer
+            self.onDeviceSTTService.appendBuffer(buffer)
+        }
+
+        // Pre-buffer consumer (aiThinking/aiSpeaking) - for barge-in detection
+        audioEngine.preBufferConsumer = { [weak self] buffer, rms in
+            guard let self = self else { return }
+
+            // Check for barge-in during AI speaking
+            if case .aiSpeaking = self.audioEngine.chatState {
+                if rms > self.audioEngine.bargeInThreshold {
+                    self.handleBargeIn()
                 }
             }
-        } else {
-            setupAudioSession()
-            if isOnDeviceMode {
-                onDeviceSTTService.start(language: settings.sttLanguage)
-            } else {
-                relayService.startMic()
+
+            // In relay mode, continue sending audio for pre-buffering on server
+            if !self.isOnDeviceMode {
+                self.relayService.appendBuffer(buffer, rms: rms)
             }
         }
     }
 
-    /// End a chat turn — called by: orb tap, stop phrase detection
-    private func stopChat() {
-        guard case .userSpeaking = chatState else { return }
-        isStopping = true
-        chatState = .idle
-        inputLevel = 0.0
+    private func handleBargeIn() {
+        print("[chat] barge-in detected")
 
-        // Play stop sound — use AudioServicesPlaySystemSound (no session switch needed)
-        AudioServicesPlaySystemSound(1110) // end_record.caf
-
+        // Stop TTS
         if isOnDeviceMode {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                guard let self = self else { return }
-                self.onDeviceSTTService.stop()
-            }
-            // 5s fallback — if TTS never arrives (stop before AI responded), finalize anyway
-            stopTimeoutTimer?.invalidate()
-            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
-                self.pendingWakeWordResume = false
-                self.finalizeStop()
-            }
-        } else {
-            // Relay mode: mic stays always-on, just notify relay to stop processing current turn
-            relayService.sendStopSignal()
-            // 5s fallback
-            stopTimeoutTimer?.invalidate()
-            stopTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
-                guard let self = self, self.isStopping || self.pendingWakeWordResume else { return }
-                self.pendingWakeWordResume = false
-                self.finalizeStop()
-            }
+            onDeviceTTSService.stop()
         }
-    }
+        // Relay handles its own barge-in via protocol
 
-    /// Called when stop sequence is fully done — re-enable wake word
-    private func finalizeStop(fromTTSEnd: Bool = false, fromMicStop: Bool = false) {
-        stopTimeoutTimer?.invalidate()
-        stopTimeoutTimer = nil
-        isStopping = false
-        chatState = .idle
-        inputLevel = 0.0
+        // Flush pre-buffer if any
+        if !preBufferText.isEmpty {
+            print("[chat] flushing pre-buffer: \(preBufferText.prefix(50))")
+            preBufferText = ""
+        }
 
-        if fromMicStop {
-            // TTS might still be coming — mark pending, resume after TTS end
-            ignoreNextTTSEnd = true
-            pendingWakeWordResume = true
-        } else {
-            // fromTTSEnd or timeout — safe to resume now
-            pendingWakeWordResume = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.resumeWakeWord()
-            }
+        // Transition to listening (user wants to speak)
+        audioEngine.chatState = .listening
+        if isOnDeviceMode {
+            onDeviceSTTService.start(language: settings.sttLanguage)
         }
     }
 
@@ -216,8 +253,10 @@ class ChatViewModel: ObservableObject {
         wakeWordService.wakePhrase = settings.wakePhrase
         wakeWordService.onDetected = { [weak self] in
             DispatchQueue.main.async {
-                guard let self = self, case .idle = self.chatState, self.isToggleEnabled else { return }
-                self.startChat(beep: true)
+                guard let self = self,
+                      case .idle = self.chatState,
+                      self.isToggleEnabled else { return }
+                self.triggerStart()
             }
         }
         wakeWordService.start(language: settings.sttLanguage)
@@ -225,7 +264,9 @@ class ChatViewModel: ObservableObject {
 
     private func resumeWakeWord() {
         guard !settings.wakePhrase.isEmpty else { return }
-        wakeWordService.start(language: settings.sttLanguage)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.wakeWordService.start(language: self?.settings.sttLanguage ?? "en")
+        }
     }
 
     // MARK: - Relay Callbacks
@@ -233,41 +274,45 @@ class ChatViewModel: ObservableObject {
     private func setupRelay() {
         relayService.onReady = { [weak self] in
             DispatchQueue.main.async {
-                self?.chatState = .idle
-                self?.isToggleEnabled = true
-                self?.showReconnectButton = false
-                self?.reconnectAttemptCount = 0
+                guard let self = self else { return }
+                self.audioEngine.chatState = .idle
+                self.isToggleEnabled = true
+                self.showReconnectButton = false
+                self.reconnectAttemptCount = 0
             }
         }
 
         relayService.onDisconnected = { [weak self] in
             DispatchQueue.main.async {
-                self?.chatState = .connecting
-                self?.isToggleEnabled = false
+                guard let self = self else { return }
+                self.audioEngine.chatState = .connecting
+                self.isToggleEnabled = false
             }
         }
 
         relayService.onTranscript = { [weak self] text, isFinal in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Stop phrase → same as manual stop
+
+                // Check stop phrase
                 let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
                 if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                     print("[chat] stop phrase: '\(text)'")
-                    // Only add to chat once (isFinal), avoid duplicates from partial+final
-                    if isFinal && !text.isEmpty && !self.isStopping {
+                    if isFinal && !text.isEmpty {
                         self.messages.append(Message(role: .user, text: text))
                     }
                     self.currentTranscript = ""
-                    self.inputLevel = 0.0
-                    self.stopChat()
+                    self.triggerStop()
                     return
                 }
-                guard case .userSpeaking = self.chatState else { return }
+
+                guard case .listening = self.chatState else { return }
+
                 if isFinal && !text.isEmpty {
                     self.messages.append(Message(role: .user, text: text))
                     self.currentTranscript = ""
-                    self.chatState = .idle
+                    // Transition to aiThinking - waiting for AI response
+                    self.audioEngine.chatState = .aiThinking
                 } else if !isFinal {
                     self.currentTranscript = text
                 }
@@ -276,7 +321,7 @@ class ChatViewModel: ObservableObject {
 
         relayService.onAIText = { [weak self] text in
             DispatchQueue.main.async {
-                guard let self = self, !text.isEmpty, !self.isStopping else { return }
+                guard let self = self, !text.isEmpty else { return }
                 self.messages.append(Message(role: .assistant, text: text))
             }
         }
@@ -284,65 +329,51 @@ class ChatViewModel: ObservableObject {
         relayService.onTTSStart = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.chatState = .aiSpeaking
-                self.setupAudioSession()
+                self.audioEngine.chatState = .aiSpeaking
+                AudioSessionManager.shared.setSpeaker(self.isLoudSpeaker)
             }
         }
 
         relayService.onTTSEnd = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                if self.ignoreNextTTSEnd {
-                    self.ignoreNextTTSEnd = false
-                    self.chatState = .idle
-                    self.inputLevel = 0.0
-                    if self.pendingWakeWordResume {
-                        self.pendingWakeWordResume = false
-                        self.stopTimeoutTimer?.invalidate()   // cancel 5s timer — this path wins
-                        self.stopTimeoutTimer = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                            self?.resumeWakeWord()
-                        }
-                    }
-                    return
+
+                // Flush any pre-buffer text
+                if !self.preBufferText.isEmpty {
+                    print("[chat] TTS end, flushing pre-buffer")
+                    self.preBufferText = ""
                 }
-                if self.isStopping {
-                    // TTS was last response after stop — finalize cleanly
-                    self.finalizeStop(fromTTSEnd: true)
-                    return
-                }
-                self.chatState = .idle
-                self.inputLevel = 0.0
-                // Mic is always-on — no need to restart, just update state
+
+                // Auto-continue: go back to listening for next turn
                 if self.isToggleEnabled {
-                    self.chatState = .userSpeaking
+                    self.audioEngine.chatState = .listening
                     SoundPlayer.playStart()
+                } else {
+                    self.audioEngine.chatState = .idle
+                    self.resumeWakeWord()
                 }
             }
-        }
-
-        relayService.onAudioLevel = { [weak self] level in
-            self?.inputLevel = level
         }
 
         relayService.onMicStop = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.chatState = .idle
-                self.inputLevel = 0.0
-                if self.isStopping {
-                    self.finalizeStop(fromMicStop: true)
-                } else {
-                    print("[sound] playing 1114 — STT done (relay mic_stop)")
-                    let s = AVAudioSession.sharedInstance()
-                    try? s.setActive(false, options: .notifyOthersOnDeactivation)
-                    AudioServicesPlaySystemSound(1110)
+                // Relay detected silence - transition to aiThinking
+                if case .listening = self.chatState {
+                    SoundPlayer.playStop()
+                    self.audioEngine.chatState = .aiThinking
                 }
             }
         }
 
         relayService.useSpeaker = settings.useSpeaker
-        relayService.connect(gatewayURL: settings.gatewayURL, language: settings.sttLanguage, voice: "NF", token: settings.gatewayToken, textMode: false)
+        relayService.connect(
+            gatewayURL: settings.gatewayURL,
+            language: settings.sttLanguage,
+            voice: "NF",
+            token: settings.gatewayToken,
+            textMode: false
+        )
     }
 
     // MARK: - Gateway Direct (On-Device Mode)
@@ -351,66 +382,80 @@ class ChatViewModel: ObservableObject {
         gatewayService.onDelta = { [weak self] delta in
             guard let self = self else { return }
             self.accumulatedResponse += delta
+            DispatchQueue.main.async {
+                self.currentAIResponse = self.accumulatedResponse
+            }
         }
 
         gatewayService.onResponseComplete = { [weak self] in
             guard let self = self else { return }
             let response = self.accumulatedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !response.isEmpty else {
-                self.chatState = .idle
-                self.resumeWakeWord()
-                return
-            }
 
-            self.messages.append(Message(role: .assistant, text: response))
-            self.chatState = .aiSpeaking
-            self.onDeviceTTSService.useLoudSpeaker = self.isLoudSpeaker
-            self.onDeviceTTSService.speak(
-                text: response,
-                voiceId: self.settings.onDeviceVoiceId,
-                language: self.settings.sttLanguage
-            )
+            DispatchQueue.main.async {
+                self.currentAIResponse = ""
+
+                guard !response.isEmpty else {
+                    self.audioEngine.chatState = .idle
+                    self.resumeWakeWord()
+                    return
+                }
+
+                self.messages.append(Message(role: .assistant, text: response))
+                self.audioEngine.chatState = .aiSpeaking
+                self.onDeviceTTSService.useLoudSpeaker = self.isLoudSpeaker
+                self.onDeviceTTSService.speak(
+                    text: response,
+                    voiceId: self.settings.onDeviceVoiceId,
+                    language: self.settings.sttLanguage
+                )
+            }
         }
 
-        // Connect to gateway
         gatewayService.connect(to: settings.gatewayURL, token: settings.gatewayToken)
 
-        // Observe gateway state
         gatewayService.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 guard let self = self else { return }
                 switch state {
                 case .connected:
-                    self.chatState = .idle
+                    self.audioEngine.chatState = .idle
                     self.isToggleEnabled = true
                     self.showReconnectButton = false
                     self.reconnectAttemptCount = 0
                 case .connecting:
-                    self.chatState = .connecting
+                    self.audioEngine.chatState = .connecting
                 case .disconnected, .error:
-                    self.chatState = .connecting
+                    self.audioEngine.chatState = .connecting
                     self.isToggleEnabled = false
                 }
             }
             .store(in: &cancellables)
     }
 
+    // MARK: - On-Device TTS
+
     private func setupOnDeviceTTS() {
         onDeviceTTSService.onStart = { [weak self] in
-            self?.chatState = .aiSpeaking
+            DispatchQueue.main.async {
+                self?.audioEngine.chatState = .aiSpeaking
+            }
         }
 
         onDeviceTTSService.onFinish = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.accumulatedResponse = ""
-                if self.isStopping {
-                    self.finalizeStop(fromTTSEnd: true)
+
+                // Auto-continue to listening
+                if self.isToggleEnabled {
+                    self.audioEngine.chatState = .listening
+                    SoundPlayer.playStart { [weak self] in
+                        self?.onDeviceSTTService.start(language: self?.settings.sttLanguage ?? "en")
+                    }
                 } else {
-                    self.chatState = .idle
-                    self.inputLevel = 0.0
-                    if self.isToggleEnabled { self.startChat() }
+                    self.audioEngine.chatState = .idle
+                    self.resumeWakeWord()
                 }
             }
         }
@@ -419,60 +464,99 @@ class ChatViewModel: ObservableObject {
     // MARK: - On-Device STT
 
     private func setupOnDeviceSTT() {
-        onDeviceSTTService.onTranscript = { [weak self] (text: String, isFinal: Bool) in
+        onDeviceSTTService.onTranscript = { [weak self] text, isFinal in
             guard let self = self else { return }
-            // Stop phrase check
+
+            // Check stop phrase
             let sp = self.settings.stopPhrase.trimmingCharacters(in: .whitespaces)
             if !sp.isEmpty && fuzzyContains(text, phrase: sp, threshold: 0.7) {
                 print("[chat] stop phrase (on-device): '\(text)'")
-                // Only add to chat once (isFinal), avoid duplicates from partial+final
-                if isFinal && !text.isEmpty && !self.isStopping {
-                    self.messages.append(Message(role: .user, text: text))
+                if isFinal && !text.isEmpty {
+                    DispatchQueue.main.async {
+                        self.messages.append(Message(role: .user, text: text))
+                    }
                 }
                 self.onDeviceSTTService.stop()
-                self.currentTranscript = ""
-                self.inputLevel = 0.0
-                self.stopChat()
+                DispatchQueue.main.async {
+                    self.currentTranscript = ""
+                    self.triggerStop()
+                }
                 return
             }
-            guard case .userSpeaking = self.chatState else { return }
-            if !isFinal {
-                self.currentTranscript = text
+
+            guard case .listening = self.audioEngine.chatState else { return }
+
+            DispatchQueue.main.async {
+                if !isFinal {
+                    self.currentTranscript = text
+                }
             }
         }
 
-        onDeviceSTTService.onAudioLevel = { [weak self] level in
-            self?.inputLevel = level
-        }
+        onDeviceSTTService.onFinalTranscript = { [weak self] text in
+            guard let self = self, case .listening = self.audioEngine.chatState else { return }
 
-        onDeviceSTTService.onFinalTranscript = { [weak self] (text: String) in
-            guard let self = self, case .userSpeaking = self.chatState else { return }
-            guard !self.isStopping else { return }  // Don't send to gateway if stopping
             self.onDeviceSTTService.stop()
-            self.chatState = .idle
-            self.inputLevel = 0.0
-            self.currentTranscript = ""
-            print("[sound] playing 1114 — STT done (on-device final)")
-            let s = AVAudioSession.sharedInstance()
-            try? s.setActive(false, options: .notifyOthersOnDeactivation)
-            AudioServicesPlaySystemSound(1110)
-            if !text.isEmpty {
-                self.messages.append(Message(role: .user, text: text))
+
+            DispatchQueue.main.async {
+                self.currentTranscript = ""
+                SoundPlayer.playStop()
+
+                if !text.isEmpty {
+                    self.messages.append(Message(role: .user, text: text))
+                }
+
+                // Transition to aiThinking
+                self.audioEngine.chatState = .aiThinking
+
+                // Send to gateway
+                self.accumulatedResponse = ""
+                self.gatewayService.sendMessage(text)
             }
-            // Send to gateway directly in on-device mode
-            self.accumulatedResponse = ""
-            self.gatewayService.sendMessage(text)
         }
     }
 
-    // MARK: - Audio Session
+    // MARK: - Audio Engine State Observation
 
-    private func setupAudioSession() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
-        try? session.setActive(true)
-        if isLoudSpeaker { try? session.overrideOutputAudioPort(.speaker) }
+    private func observeAudioEngineState() {
+        // Observe chatState changes from AudioEngine
+        audioEngine.$chatState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                // Force UI update when chatState changes
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        audioEngine.$inputLevel
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
+
+    // MARK: - Headphone Handling
+
+    private func setupHeadphoneHandling() {
+        AudioSessionManager.shared.onHeadphonesConnected = { [weak self] in
+            guard let self = self, self.isLoudSpeaker else { return }
+            self.speakerStateBeforeHeadphones = true
+            self.isLoudSpeaker = false
+            UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
+            AudioSessionManager.shared.setSpeaker(false)
+        }
+
+        AudioSessionManager.shared.onHeadphonesDisconnected = { [weak self] in
+            guard let self = self, let previous = self.speakerStateBeforeHeadphones else { return }
+            self.isLoudSpeaker = previous
+            UserDefaults.standard.set(previous, forKey: "kuromi_loud_speaker")
+            AudioSessionManager.shared.setSpeaker(previous)
+            self.speakerStateBeforeHeadphones = nil
+        }
+    }
+
+    // MARK: - Foreground Observer
 
     private func observeForeground() {
         NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
@@ -485,35 +569,6 @@ class ChatViewModel: ObservableObject {
                     }
                 } else {
                     self.relayService.appDidBecomeActive()
-                }
-            }
-            .store(in: &cancellables)
-
-        // When AirPods/headphones connect → disable loud speaker; disconnect → restore previous state
-        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] notification in
-                guard let self = self,
-                      let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                      let routeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
-                let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
-                let hasHeadphones = outputs.contains { $0.portType == .headphones || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothHFP }
-                switch routeReason {
-                case .newDeviceAvailable:
-                    if hasHeadphones && self.isLoudSpeaker {
-                        self.speakerStateBeforeHeadphones = true
-                        self.isLoudSpeaker = false
-                        UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
-                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
-                    }
-                case .oldDeviceUnavailable:
-                    if !hasHeadphones, let previous = self.speakerStateBeforeHeadphones {
-                        self.isLoudSpeaker = previous
-                        UserDefaults.standard.set(previous, forKey: "kuromi_loud_speaker")
-                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(previous ? .speaker : .none)
-                        self.speakerStateBeforeHeadphones = nil
-                    }
-                default: break
                 }
             }
             .store(in: &cancellables)
