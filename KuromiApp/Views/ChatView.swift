@@ -187,6 +187,9 @@ struct OrbView: View {
     private let containerSize: CGFloat = 240
     private let orbBase: CGFloat = 132
 
+    @State private var thinkingRotation: Double = 0
+    @State private var thinkingPulse: CGFloat = 1.0
+
     // Orb scale reactive to voice level when listening
     private var orbScale: CGFloat {
         switch chatState {
@@ -220,6 +223,21 @@ struct OrbView: View {
             // Pulsing ring for aiThinking
             if case .aiThinking = chatState {
                 PulsingRingView(baseSize: orbBase)
+                // Rotating arc to indicate "thinking"
+                Circle()
+                    .trim(from: 0, to: 0.25)
+                    .stroke(Color.orange.opacity(0.6), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .frame(width: orbBase + 16, height: orbBase + 16)
+                    .rotationEffect(.degrees(thinkingRotation))
+                    .onAppear {
+                        withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                            thinkingRotation = 360
+                        }
+                        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                            thinkingPulse = 1.08
+                        }
+                    }
+                    .onDisappear { thinkingRotation = 0; thinkingPulse = 1.0 }
             }
 
             // Main orb
@@ -231,7 +249,7 @@ struct OrbView: View {
                     )
                 )
                 .frame(width: orbBase, height: orbBase)
-                .scaleEffect(orbScale)
+                .scaleEffect(chatState == .aiThinking ? thinkingPulse : orbScale)
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
