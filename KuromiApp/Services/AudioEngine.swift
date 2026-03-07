@@ -72,7 +72,7 @@ final class AudioEngine: ObservableObject {
 
     /// Barge-in threshold — echo gate + fixed offset, capped at 0.85
     var bargeInThreshold: Float {
-        return min(echoGateThreshold + 0.50, 0.85)
+        return min(echoGateThreshold + 1.00, 0.85)
     }
 
     // MARK: - Private
