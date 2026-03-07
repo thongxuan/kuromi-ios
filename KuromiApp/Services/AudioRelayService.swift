@@ -2,20 +2,18 @@ import Foundation
 import AVFoundation
 import AVFAudio
 
-/// iOS chỉ làm 1 việc: stream PCM audio lên relay /audio
-/// Relay tự lo: STT, silence detection, gateway, TTS
+/// Relay service for streaming audio to remote relay server.
+/// Uses shared AudioEngine for audio input - does NOT manage its own AVAudioEngine.
 class AudioRelayService: NSObject, ObservableObject {
     @Published var isConnected = false
-    @Published var isListening = false
     @Published var isPlayingTTS = false
 
-    // Callbacks cho UI
+    // Callbacks for UI
     var onReady: (() -> Void)?
     var onTranscript: ((String, Bool) -> Void)?
     var onAIText: ((String) -> Void)?
     var onTTSStart: (() -> Void)?
     var onTTSEnd: (() -> Void)?
-    var onAudioLevel: ((Float) -> Void)?
     var onMicStop: (() -> Void)?
     var onDisconnected: (() -> Void)?
 
@@ -27,7 +25,6 @@ class AudioRelayService: NSObject, ObservableObject {
 
     private var ws: URLSessionWebSocketTask?
     private var urlSession: URLSession?
-    private var audioEngine = AVAudioEngine()
     private var audioPlayer: AVAudioPlayer?
     private var ttsBuffer = Data()
     var useSpeaker: Bool = false
@@ -36,44 +33,8 @@ class AudioRelayService: NSObject, ObservableObject {
     private var reconnectTimer: Timer?
     private var reconnectAttempts = 0
     private var isReconnecting = false
-    private let bargeInThreshold: Float = 0.2
-    private var didBargeIn: Bool = false  // prevent repeated barge-in for same TTS
-
-    override init() {
-        super.init()
-        // Handle audio route changes (e.g. AirPods connected during TTS playback)
-        NotificationCenter.default.addObserver(self,
-            selector: #selector(handleRouteChange(_:)),
-            name: AVAudioSession.routeChangeNotification,
-            object: nil)
-    }
-
-    @objc private func handleRouteChange(_ notification: Notification) {
-        guard let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-              let routeChangeReason = AVAudioSession.RouteChangeReason(rawValue: reason) else { return }
-        switch routeChangeReason {
-        case .newDeviceAvailable, .oldDeviceUnavailable:
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                // If mic is active: HW format changed — must restart engine with new format
-                if self.isListening {
-                    self.stopMic()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        self.startMic()
-                    }
-                }
-                // If TTS playing: re-apply speaker routing
-                if self.isPlayingTTS {
-                    if self.useSpeaker {
-                        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
-                    }
-                    if let player = self.audioPlayer, !player.isPlaying {
-                        player.play()
-                    }
-                }
-            }
-        default: break
-        }
-    }
+    private let bargeInThreshold: Float = 0.3
+    private var didBargeIn: Bool = false
 
     // MARK: - Connect / Disconnect
 
@@ -95,14 +56,16 @@ class AudioRelayService: NSObject, ObservableObject {
         guard let wsURL = URL(string: url) else { return }
 
         isReconnecting = true
-        ws?.cancel(); ws = nil
+        ws?.cancel()
+        ws = nil
         isReconnecting = false
 
         // Reset state on reconnect
         isPlayingTTS = false
         isReceivingTTS = false
         ttsBuffer = Data()
-        audioPlayer?.stop(); audioPlayer = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
 
         isConnected = false
         urlSession = URLSession(configuration: .default, delegate: nil, delegateQueue: .main)
@@ -113,24 +76,22 @@ class AudioRelayService: NSObject, ObservableObject {
         var startMsg: [String: String] = ["type": textMode ? "start_text" : "start", "language": sttLanguage, "voice": ttsVoice]
         if !gatewayToken.isEmpty { startMsg["token"] = gatewayToken }
         sendJSON(startMsg)
-        print("[relay] connecting → \(url)")
+        print("[relay] connecting -> \(url)")
     }
 
     func disconnect() {
-        stopMic()
-        ws?.cancel(); ws = nil
+        ws?.cancel()
+        ws = nil
         isConnected = false
     }
 
     func reconnect() {
         reconnectAttempts = 0
-        stopMic()
         doConnect()
     }
 
     func appDidBecomeActive() {
         guard !gatewayURL.isEmpty else { return }
-        // Always reconnect on foreground — WS may have died in background
         reconnectAttempts = 0
         reconnectTimer?.invalidate()
         doConnect()
@@ -148,56 +109,38 @@ class AudioRelayService: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Mic
+    // MARK: - Audio Buffer Processing
 
-    func startMic() {
-        guard !isListening else { return }
-        let inputNode = audioEngine.inputNode
-        let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true)!
-        let nativeFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.removeTap(onBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: nativeFormat) { [weak self] buffer, _ in
-            guard let self = self, let converted = self.convertBuffer(buffer, to: format) else { return }
-            let level = self.computeRMS(from: converted)
-            DispatchQueue.main.async { self.onAudioLevel?(level) }
-            let data = self.pcmData(from: converted)
-            guard !data.isEmpty else { return }
-            if self.isPlayingTTS {
-                if level > self.bargeInThreshold && !self.didBargeIn {
-                    self.didBargeIn = true
-                    print("[relay] barge-in (level=\(level))")
-                    self.sendJSON(["type": "barge_in"])
-                    self.sendBinary(data)
-                }
-            } else {
-                self.sendBinary(data)
+    /// Called by AudioEngine in listening state with converted PCM buffer.
+    func appendBuffer(_ buffer: AVAudioPCMBuffer, rms: Float) {
+        let data = pcmData(from: buffer)
+        guard !data.isEmpty else { return }
+
+        // During TTS playback, check for barge-in
+        if isPlayingTTS {
+            if rms > bargeInThreshold && !didBargeIn {
+                didBargeIn = true
+                print("[relay] barge-in (level=\(rms))")
+                sendJSON(["type": "barge_in"])
+                sendBinary(data)
             }
-        }
-        do {
-            try audioEngine.start()
-            isListening = true
-            print("[relay] mic started")
-        } catch {
-            print("[relay] mic error: \(error)")
+        } else {
+            sendBinary(data)
         }
     }
 
-    func stopMic() {
-        guard isListening else { return }
-        audioEngine.inputNode.removeTap(onBus: 0)
-        audioEngine.stop()
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        isListening = false
-        print("[relay] mic stopped")
-    }
-
-    /// Tell relay to stop processing current turn (mic stays on)
+    /// Tell relay to stop processing current turn.
     func sendStopSignal() {
         sendJSON(["type": "stop"])
     }
 
     func sendTranscript(_ text: String) {
         sendJSON(["type": "transcript", "text": text])
+    }
+
+    /// Reset barge-in flag for new TTS.
+    func resetBargeIn() {
+        didBargeIn = false
     }
 
     // MARK: - Receive
@@ -209,7 +152,7 @@ class AudioRelayService: NSObject, ObservableObject {
             case .success(let msg):
                 switch msg {
                 case .string(let text): self.handleJSON(text)
-                case .data(let data):   self.handleBinary(data)
+                case .data(let data): self.handleBinary(data)
                 @unknown default: break
                 }
                 self.receive()
@@ -218,7 +161,6 @@ class AudioRelayService: NSObject, ObservableObject {
                 print("[relay] disconnected: \(err.localizedDescription)")
                 DispatchQueue.main.async {
                     self.isConnected = false
-                    self.isListening = false
                     self.onDisconnected?()
                     self.scheduleReconnect()
                 }
@@ -230,30 +172,38 @@ class AudioRelayService: NSObject, ObservableObject {
         guard let data = text.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = json["type"] as? String else { return }
+
         DispatchQueue.main.async {
             switch type {
             case "ready":
                 self.isConnected = true
                 self.onReady?()
+
             case "transcript":
                 let t = json["text"] as? String ?? ""
                 let final = json["is_final"] as? Bool ?? false
                 self.onTranscript?(t, final)
+
             case "ai_text":
                 let text = json["text"] as? String ?? ""
                 self.onAIText?(text)
+
             case "tts_start":
                 self.ttsBuffer = Data()
                 self.isReceivingTTS = true
                 self.isPlayingTTS = true
                 self.didBargeIn = false
                 self.onTTSStart?()
+
             case "tts_end":
                 self.isReceivingTTS = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.playTTSBuffer() }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.playTTSBuffer()
+                }
+
             case "mic_stop":
-                // Mic stays always-on — don't stop AVAudioEngine, just notify UI
                 self.onMicStop?()
+
             case "tts_abort":
                 self.isReceivingTTS = false
                 self.isPlayingTTS = false
@@ -261,21 +211,29 @@ class AudioRelayService: NSObject, ObservableObject {
                 self.audioPlayer = nil
                 self.ttsBuffer = Data()
                 self.onTTSEnd?()
-            default: break
+
+            default:
+                break
             }
         }
     }
 
     private func handleBinary(_ data: Data) {
         DispatchQueue.main.async {
-            if self.isReceivingTTS { self.ttsBuffer.append(data) }
+            if self.isReceivingTTS {
+                self.ttsBuffer.append(data)
+            }
         }
     }
 
     // MARK: - TTS Playback
 
     private func playTTSBuffer() {
-        guard !ttsBuffer.isEmpty else { isPlayingTTS = false; onTTSEnd?(); return }
+        guard !ttsBuffer.isEmpty else {
+            isPlayingTTS = false
+            onTTSEnd?()
+            return
+        }
         do {
             audioPlayer = try AVAudioPlayer(data: ttsBuffer)
             audioPlayer?.delegate = self
@@ -296,34 +254,13 @@ class AudioRelayService: NSObject, ObservableObject {
         ws?.send(.string(str)) { _ in }
     }
 
-    private func sendBinary(_ data: Data) { ws?.send(.data(data)) { _ in } }
-
-    private func convertBuffer(_ buffer: AVAudioPCMBuffer, to format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        guard let converter = AVAudioConverter(from: buffer.format, to: format) else { return nil }
-        let frames = AVAudioFrameCount(Double(buffer.frameLength) * format.sampleRate / buffer.format.sampleRate)
-        guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return nil }
-        var filled = false
-        var err: NSError?
-        converter.convert(to: out, error: &err) { _, status in
-            if !filled { filled = true; status.pointee = .haveData; return buffer }
-            status.pointee = .noDataNow; return nil
-        }
-        return err == nil ? out : nil
+    private func sendBinary(_ data: Data) {
+        ws?.send(.data(data)) { _ in }
     }
 
     private func pcmData(from buffer: AVAudioPCMBuffer) -> Data {
         guard let ch = buffer.int16ChannelData else { return Data() }
         return Data(bytes: ch[0], count: Int(buffer.frameLength) * 2)
-    }
-
-    private func computeRMS(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let ch = buffer.int16ChannelData, buffer.frameLength > 0 else { return 0 }
-        var sum: Float = 0
-        for i in 0..<Int(buffer.frameLength) {
-            let s = Float(ch[0][i]) / 32768.0
-            sum += s * s
-        }
-        return min(sqrt(sum / Float(buffer.frameLength)) * 8.0, 1.0)
     }
 }
 
