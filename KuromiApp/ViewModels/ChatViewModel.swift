@@ -77,6 +77,7 @@ class ChatViewModel: ObservableObject {
         // Start the always-on audio engine
         AudioSessionManager.shared.setupForChat(loudSpeaker: isLoudSpeaker)
         audioEngine.isLoudSpeaker = isLoudSpeaker
+        updateOutputMode()
         audioEngine.startEngine()
 
         // Start connection
@@ -128,6 +129,17 @@ class ChatViewModel: ObservableObject {
         UserDefaults.standard.set(isLoudSpeaker, forKey: "kuromi_loud_speaker")
         AudioSessionManager.shared.setSpeaker(isLoudSpeaker)
         audioEngine.isLoudSpeaker = isLoudSpeaker
+        updateOutputMode()
+    }
+
+    private func updateOutputMode() {
+        let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        let hasAirPods = outputs.contains { $0.portType == .bluetoothA2DP || $0.portType == .bluetoothHFP }
+        let hasWired = outputs.contains { $0.portType == .headphones }
+        if hasAirPods { audioEngine.outputMode = "airpods" }
+        else if hasWired { audioEngine.outputMode = "headphone" }
+        else if isLoudSpeaker { audioEngine.outputMode = "loud" }
+        else { audioEngine.outputMode = "inner" }
     }
 
     // MARK: - State Transitions
@@ -550,6 +562,7 @@ class ChatViewModel: ObservableObject {
             self.audioEngine.isLoudSpeaker = false
             UserDefaults.standard.set(false, forKey: "kuromi_loud_speaker")
             AudioSessionManager.shared.setSpeaker(false)
+            self.updateOutputMode()
         }
 
         AudioSessionManager.shared.onHeadphonesDisconnected = { [weak self] in
@@ -559,6 +572,7 @@ class ChatViewModel: ObservableObject {
             UserDefaults.standard.set(previous, forKey: "kuromi_loud_speaker")
             AudioSessionManager.shared.setSpeaker(previous)
             self.speakerStateBeforeHeadphones = nil
+            self.updateOutputMode()
         }
     }
 

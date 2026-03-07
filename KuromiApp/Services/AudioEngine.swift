@@ -49,23 +49,30 @@ final class AudioEngine: ObservableObject {
     /// Whether loud speaker (external) is active — set by ChatViewModel
     var isLoudSpeaker: Bool = false
 
-    /// Dynamic echo gate threshold based on speaker mode + current volume level.
-    /// - Inner speaker / headphone: base 0.05, scales lightly with volume
-    /// - Loud speaker: base 0.25, scales more aggressively with volume
+    /// Scale factors for echo gate per speaker mode
+    /// AirPods/headphone: no threshold needed (acoustic isolation)
+    /// Inner speaker: mild scaling
+    /// Loud speaker: aggressive scaling
+    private let echoGateFactor: [String: Float] = [
+        "airpods":      0.0,   // AirPods — no echo, no gating needed
+        "headphone":    0.0,   // wired headphones — no echo
+        "inner":        0.30,  // inner speaker — mild (threshold = volume * 0.30)
+        "loud":         0.70,  // loud speaker — aggressive (threshold = volume * 0.70)
+    ]
+
+    /// Current output mode — set by AudioSessionManager/ChatViewModel
+    var outputMode: String = "inner"  // "airpods" | "headphone" | "inner" | "loud"
+
+    /// Dynamic echo gate threshold = factor × volume
     var echoGateThreshold: Float {
-        let volume = AVAudioSession.sharedInstance().outputVolume  // 0.0–1.0
-        if isLoudSpeaker {
-            // Loud speaker: high base + strong volume scaling (0.25 → 0.65)
-            return 0.25 + volume * 0.40
-        } else {
-            // Inner speaker / headphone: low base + gentle volume scaling (0.05 → 0.20)
-            return 0.05 + volume * 0.15
-        }
+        let volume = AVAudioSession.sharedInstance().outputVolume
+        let factor = echoGateFactor[outputMode] ?? 0.30
+        return factor * volume
     }
 
-    /// Barge-in threshold — slightly above echo gate to avoid false triggers
+    /// Barge-in threshold — echo gate + fixed offset, capped at 0.85
     var bargeInThreshold: Float {
-        return min(echoGateThreshold + 0.15, 0.85)
+        return min(echoGateThreshold + 0.20, 0.85)
     }
 
     // MARK: - Private
