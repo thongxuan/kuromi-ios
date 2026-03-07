@@ -48,15 +48,11 @@ class SetupViewModel: ObservableObject {
     }
 
     var canContinue: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !wakePhrase.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !stopPhrase.trimmingCharacters(in: .whitespaces).isEmpty
+        !gatewayURL.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     func save() -> AppSettings? {
-        guard !gatewayURL.trimmingCharacters(in: .whitespaces).isEmpty else { errorMessage = "Gateway URL is required"; return nil }
-        guard !wakePhrase.trimmingCharacters(in: .whitespaces).isEmpty else { errorMessage = "Wake phrase is required"; return nil }
-        guard !stopPhrase.trimmingCharacters(in: .whitespaces).isEmpty else { errorMessage = "Stop phrase is required"; return nil }
+        guard canContinue else { errorMessage = "Gateway URL is required"; return nil }
         errorMessage = ""
         var s = AppSettings(
             gatewayURL: gatewayURL.trimmingCharacters(in: .whitespaces),
