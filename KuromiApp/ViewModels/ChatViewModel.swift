@@ -597,18 +597,16 @@ class ChatViewModel: ObservableObject {
     // MARK: - Foreground Observer
 
     private func observeForeground() {
-        // Restart audio engine + reconnect socket when app returns from background
-        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+        // willEnterForeground: only fires on background→foreground, NOT on first launch
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self = self else { return }
-                print("[lifecycle] didBecomeActive — restarting audio engine")
+                print("[lifecycle] willEnterForeground — restarting audio engine + reconnect")
 
-                // Restart audio engine first
                 AudioSessionManager.shared.setupForChat(loudSpeaker: self.isLoudSpeaker)
                 self.audioEngine.restartEngine()
 
-                // Force reconnect after engine stabilizes — iOS kills WS when backgrounded
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if self.isOnDeviceMode {
                         self.gatewayService.connect(to: self.settings.gatewayURL, token: self.settings.gatewayToken)
@@ -619,7 +617,7 @@ class ChatViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Stop audio engine when going to background
+        // didEnterBackground: stop audio engine to free resources
         NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
