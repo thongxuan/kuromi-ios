@@ -229,8 +229,8 @@ class ChatViewModel: ObservableObject {
         audioEngine.preBufferConsumer = { [weak self] buffer, rms in
             guard let self = self else { return }
 
-            // Check for barge-in during AI speaking
-            if case .aiSpeaking = self.audioEngine.chatState {
+            // Barge-in: relay mode only — on-device TTS echo is too loud to distinguish
+            if !self.isOnDeviceMode, case .aiSpeaking = self.audioEngine.chatState {
                 if rms > self.audioEngine.bargeInThreshold {
                     self.handleBargeIn()
                 }
