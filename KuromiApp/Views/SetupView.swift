@@ -54,6 +54,15 @@ struct SetupView: View {
 
                 Spacer()
 
+                // App version
+                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                   let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                    Text("v\(version) (\(build))")
+                        .font(.caption2)
+                        .foregroundColor(.appSecondaryLabel.opacity(0.5))
+                        .padding(.bottom, 8)
+                }
+
                 // Buttons
                 VStack(spacing: 12) {
                     Button(action: continueAction) {
