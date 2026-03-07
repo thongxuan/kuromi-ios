@@ -109,20 +109,4 @@ final class AudioSessionManager {
             $0.portType == .bluetoothHFP
         }
     }
-
-    /// Reduce mic input gain during TTS playback to suppress echo (loud speaker mode).
-    /// Only effective if device supports input gain adjustment.
-    func setMicGain(_ gain: Float) {
-        let session = AVAudioSession.sharedInstance()
-        guard session.isInputGainSettable else {
-            print("[AudioSession] inputGain not settable on this device")
-            return
-        }
-        do {
-            try session.setInputGain(gain)
-            print("[AudioSession] inputGain set to \(gain)")
-        } catch {
-            print("[AudioSession] setInputGain error: \(error)")
-        }
-    }
 }

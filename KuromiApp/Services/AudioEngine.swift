@@ -27,21 +27,8 @@ final class AudioEngine: ObservableObject {
             print("[AudioEngine] state: \(oldValue) -> \(chatState)")
 
             // Mic gain management: reduce as soon as AI takes over, restore when user speaks
-            switch chatState {
-            case .aiThinking, .aiSpeaking:
-                // Reduce mic gain early (before TTS starts) to prevent echo barge-in
-                if isLoudSpeaker {
-                    DispatchQueue.main.async {
-                        AudioSessionManager.shared.setMicGain(0.0)
-                    }
-                }
-            case .listening, .idle:
-                // Restore mic gain when user's turn
-                DispatchQueue.main.async {
-                    AudioSessionManager.shared.setMicGain(1.0)
-                }
-            default: break
-            }
+            // Echo suppression relies on voiceChat AEC + software echo gate
+            // Hardware inputGain not supported on most devices — no-op
         }
     }
     @Published var inputLevel: Float = 0.0
