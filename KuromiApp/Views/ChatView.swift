@@ -267,7 +267,7 @@ struct OrbView: View {
 
     private var orbIcon: String {
         switch visual {
-        case .idle: return isRelayMode ? "online" : "waveform"
+        case .idle: return isRelayMode ? "wifi" : "waveform"
         case .userSpeaking: return "mic.fill"
         case .ai: return ""  // arc animation speaks for itself
         }
