@@ -7,6 +7,7 @@ import AVFAudio
 class AudioRelayService: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var isPlayingTTS = false
+    @Published var ttsLevel: Float = 0.0  // 0.0–1.0 audio level while playing TTS
 
     // Callbacks for UI
     var onReady: (() -> Void)?

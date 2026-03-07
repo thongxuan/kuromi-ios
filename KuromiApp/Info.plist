@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Kuromi</string>
+	<string>OpenVoice</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,9 +23,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Kuromi needs microphone access to hear your voice and respond.</string>
+	<string>OpenVoice needs microphone access to hear your voice and respond.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Kuromi uses speech recognition to detect wake words and transcribe your voice.</string>
+	<string>OpenVoice uses speech recognition to detect wake words and transcribe your voice.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
