@@ -352,7 +352,7 @@ class ChatViewModel: ObservableObject {
                 AudioSessionManager.shared.setSpeaker(self.isLoudSpeaker)
                 // Reduce mic gain during TTS to suppress echo (loud speaker only)
                 if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(0.1)
+                    AudioSessionManager.shared.setMicGain(0.05)
                 }
             }
         }
@@ -468,7 +468,7 @@ class ChatViewModel: ObservableObject {
                 guard let self = self else { return }
                 self.audioEngine.chatState = .aiSpeaking
                 if self.isLoudSpeaker {
-                    AudioSessionManager.shared.setMicGain(0.1)
+                    AudioSessionManager.shared.setMicGain(0.05)
                 }
             }
         }
