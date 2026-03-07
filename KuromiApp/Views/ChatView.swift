@@ -223,7 +223,7 @@ struct OrbView: View {
 
             // Rotating arc + pulse — AI (thinking/speaking)
             if visual == .ai {
-                PulsingRingView(baseSize: orbBase)
+
                 Circle()
                     .trim(from: 0, to: 0.25)
                     .stroke(orbColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -274,24 +274,6 @@ struct OrbView: View {
 }
 
 // MARK: - Pulsing Ring View (for aiThinking state)
-
-struct PulsingRingView: View {
-    let baseSize: CGFloat
-    @State private var scale: CGFloat = 1.0
-    @State private var opacity: Double = 0.4
-
-    var body: some View {
-        Circle()
-            .strokeBorder(Color.orange.opacity(opacity), lineWidth: 2)
-            .frame(width: baseSize * scale, height: baseSize * scale)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                    scale = 1.3
-                    opacity = 0.1
-                }
-            }
-    }
-}
 
 // MARK: - Sun Rays (AI speaking)
 struct SunRaysView: View {
