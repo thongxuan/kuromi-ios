@@ -184,8 +184,8 @@ struct OrbView: View {
     let chatState: ChatState
     let inputLevel: Float
 
-    private let containerSize: CGFloat = 160
-    private let orbBase: CGFloat = 88
+    private let containerSize: CGFloat = 240
+    private let orbBase: CGFloat = 132
 
     // Orb scale reactive to voice level when listening
     private var orbScale: CGFloat {
