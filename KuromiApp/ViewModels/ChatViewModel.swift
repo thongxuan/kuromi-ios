@@ -154,7 +154,11 @@ class ChatViewModel: ObservableObject {
 
         // If AI is speaking, stop TTS first (barge-in from orb tap)
         if case .aiSpeaking = chatState {
-            onDeviceTTSService.stop()
+            if isOnDeviceMode {
+                onDeviceTTSService.stop()
+            } else {
+                relayService.sendBargeIn()  // abort relay TTS + stop local playback
+            }
             relayService.resetBargeIn()
         }
 

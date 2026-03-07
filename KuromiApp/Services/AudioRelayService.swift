@@ -141,6 +141,7 @@ class AudioRelayService: NSObject, ObservableObject {
         isBargingIn = true
         isReceivingTTS = false
         isPlayingTTS = false
+        print("[relay] sendBargeIn — audioPlayer=\(audioPlayer != nil), isPlaying=\(audioPlayer?.isPlaying ?? false)")
         audioPlayer?.stop()
         audioPlayer = nil
         ttsBuffer = Data()
