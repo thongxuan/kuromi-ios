@@ -183,11 +183,9 @@ final class AudioEngine: ObservableObject {
             preBufferConsumer?(converted, rms)
 
         case .aiSpeaking:
-            // Pre-buffer with echo gate threshold
-            // Only pass if above echo gate to filter TTS feedback
-            if rms > echoGateThreshold {
-                preBufferConsumer?(converted, rms)
-            }
+            // Always pass to preBufferConsumer — barge-in detection happens there
+            // Consumer applies its own bargeInThreshold check independently of echo gate
+            preBufferConsumer?(converted, rms)
 
         case .connecting, .error:
             // Don't process audio in these states
