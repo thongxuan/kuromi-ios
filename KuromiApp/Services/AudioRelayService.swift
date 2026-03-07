@@ -134,6 +134,8 @@ class AudioRelayService: NSObject, ObservableObject {
         sendJSON(["type": "stop"])
     }
 
+    func sendBargeIn() { sendJSON(["type": "barge_in"]) }
+
     func sendTranscript(_ text: String) {
         sendJSON(["type": "transcript", "text": text])
     }

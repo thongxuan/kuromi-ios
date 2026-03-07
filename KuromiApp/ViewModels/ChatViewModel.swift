@@ -263,6 +263,8 @@ class ChatViewModel: ObservableObject {
         // Stop TTS
         if isOnDeviceMode {
             onDeviceTTSService.stop()
+        } else if !isOnDeviceMode {
+            relayService.sendBargeIn()  // abort relay TTS immediately on orb tap
         }
         // Relay handles its own barge-in via protocol
 
