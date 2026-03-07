@@ -202,8 +202,7 @@ struct OrbView: View {
         switch chatState {
         case .idle, .connecting: return Color.appLabel.opacity(0.13)
         case .listening: return Color.gray.opacity(0.6)
-        case .aiThinking: return Color.orange.opacity(0.6)
-        case .aiSpeaking: return Color.purple.opacity(0.88)
+        case .aiThinking, .aiSpeaking: return Color.accentColor.opacity(0.75)
         case .error: return Color.red.opacity(0.4)
         }
     }
@@ -252,12 +251,14 @@ struct OrbView: View {
                 .shadow(color: orbColor, radius: orbScale > 1.05 ? 16 : 6)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
 
-            // Icon
-            Image(systemName: orbIcon)
-                .font(.system(size: 24, weight: .light))
-                .foregroundColor(.appLabel.opacity(0.7))
-                .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
-                .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
+            // Icon (hidden during AI states — arc animation takes over)
+            if !orbIcon.isEmpty {
+                Image(systemName: orbIcon)
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(.appLabel.opacity(0.7))
+                    .scaleEffect(orbScale > 1.0 ? min(orbScale, 1.15) : 1.0)
+                    .animation(.spring(response: 0.12, dampingFraction: 0.5), value: orbScale)
+            }
         }
         .frame(width: containerSize, height: containerSize)
         .animation(.easeInOut(duration: 0.35), value: orbColor)
@@ -268,8 +269,7 @@ struct OrbView: View {
         case .connecting: return "antenna.radiowaves.left.and.right"
         case .idle: return "waveform"
         case .listening: return "mic.fill"
-        case .aiThinking: return "ellipsis"
-        case .aiSpeaking: return "speaker.wave.2.fill"
+        case .aiThinking, .aiSpeaking: return ""  // no icon — arc animation speaks for itself
         case .error: return "exclamationmark.triangle"
         }
     }
