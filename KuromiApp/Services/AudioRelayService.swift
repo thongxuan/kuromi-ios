@@ -134,7 +134,13 @@ class AudioRelayService: NSObject, ObservableObject {
         sendJSON(["type": "stop"])
     }
 
-    func sendBargeIn() { sendJSON(["type": "barge_in"]) }
+    func sendBargeIn() {
+        sendJSON(["type": "barge_in"])
+        // Stop any buffered TTS audio playing on iOS side
+        audioPlayer?.stop()
+        audioPlayer = nil
+        ttsBuffer = Data()
+    }
 
     func sendTranscript(_ text: String) {
         sendJSON(["type": "transcript", "text": text])
