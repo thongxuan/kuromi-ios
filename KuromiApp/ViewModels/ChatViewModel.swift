@@ -49,6 +49,8 @@ class ChatViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var connectTimer: Timer?
     private var speakerStateBeforeHeadphones: Bool? = nil
+    private var bargeInStartTime: Date? = nil          // sustained barge-in detection
+    private let bargeInSustainMs: Double = 300         // must exceed threshold for 300ms
 
     // MARK: - Init
 
@@ -229,11 +231,23 @@ class ChatViewModel: ObservableObject {
         audioEngine.preBufferConsumer = { [weak self] buffer, rms in
             guard let self = self else { return }
 
-            // Barge-in: relay mode only — on-device TTS echo is too loud to distinguish
-            if !self.isOnDeviceMode, case .aiSpeaking = self.audioEngine.chatState {
+            // Sustained barge-in detection (both modes)
+            // User must speak above threshold for 300ms to trigger — filters out TTS echo spikes
+            if case .aiSpeaking = self.audioEngine.chatState {
                 if rms > self.audioEngine.bargeInThreshold {
-                    self.handleBargeIn()
+                    if let start = self.bargeInStartTime {
+                        if Date().timeIntervalSince(start) * 1000 >= self.bargeInSustainMs {
+                            self.bargeInStartTime = nil
+                            self.handleBargeIn()
+                        }
+                    } else {
+                        self.bargeInStartTime = Date()
+                    }
+                } else {
+                    self.bargeInStartTime = nil  // reset if drops below threshold
                 }
+            } else {
+                self.bargeInStartTime = nil
             }
 
             // In relay mode, continue sending audio for pre-buffering on server
