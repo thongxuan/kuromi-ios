@@ -147,8 +147,9 @@ class AudioRelayService: NSObject, ObservableObject {
     // MARK: - Receive
 
     private func receive() {
+        let capturedWs = ws  // capture current socket — ignore callbacks from old sockets
         ws?.receive { [weak self] result in
-            guard let self = self else { return }
+            guard let self = self, self.ws === capturedWs else { return }  // stale callback
             switch result {
             case .success(let msg):
                 switch msg {
@@ -158,7 +159,6 @@ class AudioRelayService: NSObject, ObservableObject {
                 }
                 self.receive()
             case .failure(let err):
-                guard !self.isReconnecting else { return }
                 print("[relay] disconnected: \(err.localizedDescription)")
                 DispatchQueue.main.async {
                     self.isConnected = false
